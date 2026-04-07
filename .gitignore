@@ -1,0 +1,19 @@
+# C# build output
+bin/
+obj/
+*.user
+
+# .NET
+*.suo
+.vs/
+
+# Environment / secrets
+.env
+appsettings.Local.json
+
+# Claude
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
