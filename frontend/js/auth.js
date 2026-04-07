@@ -1,3 +1,5 @@
+import { login } from './app.js';
+
 export function renderLogin(app) {
   app.innerHTML = `
     <div class="login-container">
@@ -10,13 +12,8 @@ export function renderLogin(app) {
     </div>
   `;
 
-  document.getElementById('login-form').addEventListener('submit', handleLogin);
-}
-
-function handleLogin(e) {
-  e.preventDefault();
-  // TODO: replace with Cognito auth
-  const username = document.getElementById('username').value;
-  const password = document.getElementById('password').value;
-  console.log('Login attempt:', username);
+  document.getElementById('login-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    login();
+  });
 }
