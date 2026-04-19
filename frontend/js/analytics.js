@@ -29,6 +29,9 @@ const CHART_DEFAULTS = {
 };
 
 let chartInstance = null;
+const chatHistory = [
+  { role: 'assistant', html: 'Hi! Ask me anything about your loads, drivers, revenue, or fuel spend.' },
+];
 
 export async function renderAnalytics(container, mode) {
   container.innerHTML = `
@@ -62,9 +65,7 @@ export async function renderAnalytics(container, mode) {
           <h3>AI Assistant</h3>
           <span class="chat-subtitle">Ask plain-English questions about your data</span>
         </div>
-        <div class="chat-messages" id="chat-messages">
-          <div class="chat-message chat-message-assistant">Hi! Ask me anything about your loads, drivers, revenue, or fuel spend.</div>
-        </div>
+        <div class="chat-messages" id="chat-messages"></div>
         <div class="chat-input-row">
           <input
             type="text"
@@ -89,6 +90,7 @@ export async function renderAnalytics(container, mode) {
 
   await refresh();
   setupChat();
+  restoreChatHistory();
 }
 
 async function updateChart(metric, groupBy) {
