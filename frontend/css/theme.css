@@ -1,0 +1,66 @@
+:root {
+  /* ── Brand Colors ── */
+  --color-primary:       #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: rgba(37, 99, 235, 0.08);
+
+  /* ── Neutrals ── */
+  --color-bg:            #f0f2f5;
+  --color-surface:       #ffffff;
+  --color-border:        #e2e8f0;
+  --color-border-light:  #f1f5f9;
+
+  /* ── Text ── */
+  --color-text:          #0f172a;
+  --color-text-secondary:#475569;
+  --color-text-muted:    #94a3b8;
+
+  /* ── Nav ── */
+  --color-nav-bg:        #0f172a;
+  --color-nav-text:      #94a3b8;
+  --color-nav-active:    #ffffff;
+
+  /* ── Status ── */
+  --color-pending-bg:    #fef9c3;
+  --color-pending-text:  #854d0e;
+  --color-complete-bg:   #dcfce7;
+  --color-complete-text: #166534;
+  --color-invoiced-bg:   #dbeafe;
+  --color-invoiced-text: #1e40af;
+  --color-paid-bg:       #f3e8ff;
+  --color-paid-text:     #6b21a8;
+
+  /* ── Typography ── */
+  --font-sans:   'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:   'JetBrains Mono', 'Fira Code', monospace;
+
+  --text-xs:     0.75rem;
+  --text-sm:     0.85rem;
+  --text-base:   0.95rem;
+  --text-lg:     1.1rem;
+  --text-xl:     1.4rem;
+  --text-2xl:    1.75rem;
+
+  /* ── Spacing ── */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+
+  /* ── Radii ── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
+
+  /* ── Shadows ── */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:  0 12px 32px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+
+  /* ── Transitions ── */
+  --transition: 0.15s ease;
+}

@@ -4,6 +4,7 @@ export function renderLogin(app) {
   app.innerHTML = `
     <div class="login-container">
       <h1>Trucking Operations</h1>
+      <p class="login-subtitle">Sign in to your account</p>
       <form id="login-form">
         <input type="text" id="username" placeholder="Username" required />
         <input type="password" id="password" placeholder="Password" required />
