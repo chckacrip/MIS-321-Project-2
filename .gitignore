@@ -9,7 +9,7 @@ obj/
 
 # Environment / secrets
 .env
-appsettings.Local.json
+**/appsettings.json
 
 # Claude
 .claude/
