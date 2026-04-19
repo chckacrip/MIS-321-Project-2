@@ -53,6 +53,7 @@ await Seeder.EmbedSchemaAtStartup(schemaChunks, embeddingClient, connectionStrin
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.MapLoadsEndpoints(connectionString);
 app.MapChatEndpoint(connectionString, conversationHistory);
 app.MapAnalyticsEndpoints(connectionString);
 

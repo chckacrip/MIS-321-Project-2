@@ -12,7 +12,12 @@ export function getMode() {
 
 export function setMode(mode) {
   localStorage.setItem('mode', mode);
-  router();
+  const managerOnly = ['#invoices', '#analytics'];
+  if (mode === 'trucker' && managerOnly.includes(window.location.hash)) {
+    window.location.hash = '#loads';
+  } else {
+    router();
+  }
 }
 
 export function isLoggedIn() {
@@ -28,15 +33,25 @@ function renderNav() {
   const mode = getMode();
   const nav = document.createElement('nav');
   nav.id = 'main-nav';
+
+  const managerLinks = `
+    <a href="#loads" class="${isActive('#loads')}">Loads</a>
+    <a href="#invoices" class="${isActive('#invoices')}">Invoices</a>
+    <a href="#driver-pay" class="${isActive('#driver-pay')}">Driver Pay</a>
+    <a href="#analytics" class="${isActive('#analytics')}">Analytics</a>
+  `;
+
+  const truckerLinks = `
+    <a href="#loads" class="${isActive('#loads')}">My Loads</a>
+    <a href="#driver-pay" class="${isActive('#driver-pay')}">My Pay</a>
+  `;
+
   nav.innerHTML = `
     <div class="nav-left">
       <span class="nav-brand">Trucking Ops</span>
     </div>
     <div class="nav-links">
-      <a href="#loads" class="${isActive('#loads')}">Loads</a>
-      <a href="#invoices" class="${isActive('#invoices')}">Invoices</a>
-      <a href="#driver-pay" class="${isActive('#driver-pay')}">Driver Pay</a>
-      <a href="#analytics" class="${isActive('#analytics')}">Analytics</a>
+      ${mode === 'manager' ? managerLinks : truckerLinks}
     </div>
     <div class="nav-right">
       <div class="mode-toggle">
@@ -73,21 +88,29 @@ function router() {
   content.id = 'content';
   app.appendChild(content);
 
+  const mode = getMode();
+  const managerOnly = ['#invoices', '#analytics'];
+
+  if (mode === 'trucker' && managerOnly.includes(hash)) {
+    window.location.hash = '#loads';
+    return;
+  }
+
   switch (hash) {
     case '#loads':
-      renderLoads(content, getMode());
+      renderLoads(content, mode);
       break;
     case '#invoices':
-      renderInvoices(content, getMode());
+      renderInvoices(content, mode);
       break;
     case '#driver-pay':
-      renderDriverPay(content, getMode());
+      renderDriverPay(content, mode);
       break;
     case '#analytics':
-      renderAnalytics(content, getMode());
+      renderAnalytics(content, mode);
       break;
     default:
-      renderLoads(content, getMode());
+      renderLoads(content, mode);
   }
 }
 

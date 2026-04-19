@@ -1,0 +1,105 @@
+{
+  "drivers": [
+    { "driver_id": 1, "unit_number": "1516", "first_name": "John",   "last_name": "Doe",     "address": "742 Evergreen Terrace, Tuscaloosa, AL", "commission_rate": 0.18 },
+    { "driver_id": 2, "unit_number": "6690", "first_name": "Mike",   "last_name": "Smith",   "address": "88 Oak Lane, Birmingham, AL",           "commission_rate": 0.18 },
+    { "driver_id": 3, "unit_number": "2234", "first_name": "Sarah",  "last_name": "Johnson", "address": "301 Pine St, Nashville, TN",            "commission_rate": 0.20 },
+    { "driver_id": 4, "unit_number": "3301", "first_name": "Carlos", "last_name": "Rivera",  "address": "55 River Rd, Memphis, TN",              "commission_rate": 0.18 },
+    { "driver_id": 5, "unit_number": "4450", "first_name": "Tommy",  "last_name": "Hayes",   "address": "190 Cedar Blvd, Jackson, MS",           "commission_rate": 0.15 }
+  ],
+
+  "loads": [
+    { "load_id": 1,  "load_number": "1061447", "ship_date": "2026-01-19", "origin": "Haleyville, AL",   "destination": "Shipshewana, IN", "description": "Steel Coil",     "line_haul_rate": 1143.08, "fsc_rate": 0.00,   "terms": "Net 30", "status": "complete", "bill_to_name": "Bob Supplier",    "bill_to_address": "123 First St, Chattanooga, TN",       "consignee_name": "Todd Supplier",   "consignee_address": "456 Second St, Huntsville, AL" },
+    { "load_id": 2,  "load_number": "1061448", "ship_date": "2026-01-25", "origin": "Birmingham, AL",   "destination": "Chicago, IL",    "description": "Steel Coil",     "line_haul_rate": 1750.00, "fsc_rate": 260.00, "terms": "Net 30", "status": "paid",     "bill_to_name": "Acme Steel",      "bill_to_address": "900 Commerce St, Birmingham, AL",     "consignee_name": "Chicago Metals",  "consignee_address": "500 Industry Ave, Chicago, IL" },
+    { "load_id": 3,  "load_number": "1061449", "ship_date": "2026-01-28", "origin": "Jackson, MS",      "destination": "Nashville, TN",  "description": "Lumber",         "line_haul_rate": 950.00,  "fsc_rate": 130.00, "terms": "Net 30", "status": "paid",     "bill_to_name": "Gulf Lumber",     "bill_to_address": "200 Main St, Jackson, MS",            "consignee_name": "Nashville Build", "consignee_address": "77 Mill Rd, Nashville, TN" },
+    { "load_id": 4,  "load_number": "1061450", "ship_date": "2026-02-03", "origin": "Memphis, TN",      "destination": "Indianapolis, IN","description": "Auto Parts",     "line_haul_rate": 1580.00, "fsc_rate": 240.00, "terms": "Net 30", "status": "invoiced", "bill_to_name": "Parts Direct",    "bill_to_address": "55 Industrial Blvd, Memphis, TN",     "consignee_name": "Indy Warehouse",  "consignee_address": "800 Cargo Way, Indianapolis, IN" },
+    { "load_id": 5,  "load_number": "1061451", "ship_date": "2026-02-07", "origin": "Huntsville, AL",   "destination": "Indianapolis, IN","description": "Machinery",      "line_haul_rate": 1320.00, "fsc_rate": 190.00, "terms": "Net 30", "status": "complete", "bill_to_name": "AL Machinery Co", "bill_to_address": "14 Factory Rd, Huntsville, AL",       "consignee_name": "Indy Mfg",        "consignee_address": "30 Warehouse Blvd, Indianapolis, IN" },
+    { "load_id": 6,  "load_number": "1061452", "ship_date": "2026-02-13", "origin": "Birmingham, AL",   "destination": "Nashville, TN",  "description": "Mixed Freight",  "line_haul_rate": 1200.00, "fsc_rate": 200.00, "terms": "Net 30", "status": "complete", "bill_to_name": "Acme Freight",    "bill_to_address": "900 Commerce St, Birmingham, AL",     "consignee_name": "Nashville Dist",  "consignee_address": "12 River Rd, Nashville, TN" },
+    { "load_id": 7,  "load_number": "1061453", "ship_date": "2026-02-14", "origin": "Memphis, TN",      "destination": "Indianapolis, IN","description": "Auto Parts",     "line_haul_rate": 1578.96, "fsc_rate": 250.00, "terms": "Net 30", "status": "invoiced", "bill_to_name": "Parts Direct",    "bill_to_address": "55 Industrial Blvd, Memphis, TN",     "consignee_name": "Indy Warehouse",  "consignee_address": "800 Cargo Way, Indianapolis, IN" },
+    { "load_id": 8,  "load_number": "1061454", "ship_date": "2026-02-15", "origin": "Jackson, MS",      "destination": "Huntsville, AL", "description": "Paper Products", "line_haul_rate": 1500.00, "fsc_rate": 180.00, "terms": "Net 30", "status": "paid",     "bill_to_name": "Gulf Paper Co",   "bill_to_address": "200 Main St, Jackson, MS",            "consignee_name": "AL Print Works",  "consignee_address": "77 Mill Rd, Huntsville, AL" },
+    { "load_id": 9,  "load_number": "1061455", "ship_date": "2026-02-17", "origin": "Tupelo, MS",       "destination": "Louisville, KY", "description": "Furniture",      "line_haul_rate": 1600.00, "fsc_rate": 243.48, "terms": "Net 30", "status": "complete", "bill_to_name": "Southern Furn",   "bill_to_address": "14 Depot Rd, Tupelo, MS",             "consignee_name": "KY Home Supply",  "consignee_address": "30 Warehouse Blvd, Louisville, KY" },
+    { "load_id": 10, "load_number": "1061456", "ship_date": "2026-02-20", "origin": "Haleyville, AL",   "destination": "Shipshewana, IN","description": "Steel Coil",     "line_haul_rate": 1180.00, "fsc_rate": 0.00,   "terms": "Net 30", "status": "complete", "bill_to_name": "Bob Supplier",    "bill_to_address": "123 First St, Chattanooga, TN",       "consignee_name": "Todd Supplier",   "consignee_address": "456 Second St, Huntsville, AL" },
+    { "load_id": 11, "load_number": "1061457", "ship_date": "2026-02-24", "origin": "Birmingham, AL",   "destination": "Nashville, TN",  "description": "Mixed Freight",  "line_haul_rate": 1050.00, "fsc_rate": 160.00, "terms": "Net 30", "status": "complete", "bill_to_name": "Acme Freight",    "bill_to_address": "900 Commerce St, Birmingham, AL",     "consignee_name": "Nashville Dist",  "consignee_address": "12 River Rd, Nashville, TN" },
+    { "load_id": 12, "load_number": "1061458", "ship_date": "2026-03-01", "origin": "Tuscaloosa, AL",   "destination": "Columbus, OH",   "description": "Steel Coil",     "line_haul_rate": 1850.00, "fsc_rate": 280.00, "terms": "Net 30", "status": "pending",  "bill_to_name": "Steel Works Inc", "bill_to_address": "500 Steel Dr, Tuscaloosa, AL",        "consignee_name": "Ohio Metals",     "consignee_address": "99 Factory Ln, Columbus, OH" },
+    { "load_id": 13, "load_number": "1061459", "ship_date": "2026-03-03", "origin": "Jackson, MS",      "destination": "Chicago, IL",    "description": "Paper Products", "line_haul_rate": 1680.00, "fsc_rate": 255.00, "terms": "Net 30", "status": "pending",  "bill_to_name": "Gulf Paper Co",   "bill_to_address": "200 Main St, Jackson, MS",            "consignee_name": "Chicago Print",   "consignee_address": "400 Press Blvd, Chicago, IL" },
+    { "load_id": 14, "load_number": "1061460", "ship_date": "2026-03-05", "origin": "Nashville, TN",    "destination": "Chicago, IL",    "description": "Machinery",      "line_haul_rate": 1100.00, "fsc_rate": 150.00, "terms": "Net 30", "status": "pending",  "bill_to_name": "TN Machinery",    "bill_to_address": "88 Industry Ave, Nashville, TN",      "consignee_name": "Chicago Mfg",     "consignee_address": "1200 Lake St, Chicago, IL" },
+    { "load_id": 15, "load_number": "1061461", "ship_date": "2026-03-08", "origin": "Birmingham, AL",   "destination": "Nashville, TN",  "description": "Lumber",         "line_haul_rate": 1150.00, "fsc_rate": 175.00, "terms": "Net 30", "status": "pending",  "bill_to_name": "Acme Freight",    "bill_to_address": "900 Commerce St, Birmingham, AL",     "consignee_name": "Nashville Build", "consignee_address": "77 Mill Rd, Nashville, TN" },
+    { "load_id": 16, "load_number": "1061462", "ship_date": "2026-03-10", "origin": "Atlanta, GA",      "destination": "Detroit, MI",    "description": "Auto Parts",     "line_haul_rate": 2200.00, "fsc_rate": 340.00, "terms": "Net 30", "status": "pending",  "bill_to_name": "Atlanta Auto",    "bill_to_address": "300 Peachtree Rd, Atlanta, GA",       "consignee_name": "Detroit Motors",  "consignee_address": "400 Assembly Dr, Detroit, MI" },
+    { "load_id": 17, "load_number": "1061463", "ship_date": "2026-03-12", "origin": "Nashville, TN",    "destination": "Chicago, IL",    "description": "Furniture",      "line_haul_rate": 1420.00, "fsc_rate": 210.00, "terms": "Net 30", "status": "pending",  "bill_to_name": "Southern Furn",   "bill_to_address": "14 Depot Rd, Tupelo, MS",             "consignee_name": "Chicago Home",    "consignee_address": "800 Lakeview Dr, Chicago, IL" },
+    { "load_id": 18, "load_number": "1061464", "ship_date": "2026-03-15", "origin": "Memphis, TN",      "destination": "Nashville, TN",  "description": "Auto Parts",     "line_haul_rate": 880.00,  "fsc_rate": 120.00, "terms": "Net 30", "status": "pending",  "bill_to_name": "Parts Direct",    "bill_to_address": "55 Industrial Blvd, Memphis, TN",     "consignee_name": "Nashville Auto",  "consignee_address": "200 Garage Way, Nashville, TN" }
+  ],
+
+  "loadDrivers": [
+    { "load_id": 1,  "driver_id": 2 },
+    { "load_id": 2,  "driver_id": 4 },
+    { "load_id": 3,  "driver_id": 5 },
+    { "load_id": 4,  "driver_id": 4 },
+    { "load_id": 5,  "driver_id": 5 },
+    { "load_id": 6,  "driver_id": 1 },
+    { "load_id": 7,  "driver_id": 1 },
+    { "load_id": 8,  "driver_id": 1 },
+    { "load_id": 9,  "driver_id": 1 },
+    { "load_id": 10, "driver_id": 2 },
+    { "load_id": 11, "driver_id": 4 },
+    { "load_id": 12, "driver_id": 3 },
+    { "load_id": 13, "driver_id": 5 },
+    { "load_id": 14, "driver_id": 2 },
+    { "load_id": 15, "driver_id": 1 },
+    { "load_id": 16, "driver_id": 3 },
+    { "load_id": 17, "driver_id": 3 },
+    { "load_id": 18, "driver_id": 4 }
+  ],
+
+  "invoices": [
+    { "invoice_id": 1, "invoice_number": "101627", "load_id": 3,  "invoice_date": "2026-02-08", "due_date": "2026-03-10", "payment_status": "paid",   "paid_date": "2026-03-01" },
+    { "invoice_id": 2, "invoice_number": "101628", "load_id": 2,  "invoice_date": "2026-02-05", "due_date": "2026-03-07", "payment_status": "paid",   "paid_date": "2026-02-28" },
+    { "invoice_id": 3, "invoice_number": "101629", "load_id": 7,  "invoice_date": "2026-02-20", "due_date": "2026-03-22", "payment_status": "unpaid", "paid_date": null },
+    { "invoice_id": 4, "invoice_number": "101630", "load_id": 8,  "invoice_date": "2026-02-18", "due_date": "2026-03-20", "payment_status": "paid",   "paid_date": "2026-03-15" },
+    { "invoice_id": 5, "invoice_number": "101631", "load_id": 4,  "invoice_date": "2026-02-15", "due_date": "2026-03-17", "payment_status": "unpaid", "paid_date": null },
+    { "invoice_id": 6, "invoice_number": "101632", "load_id": 5,  "invoice_date": "2026-02-20", "due_date": "2026-03-22", "payment_status": "unpaid", "paid_date": null }
+  ],
+
+  "advances": [
+    { "advance_id": 1,  "driver_id": 1, "load_id": 7,    "advance_date": "2026-02-14", "advance_type": "Fuel",        "amount": 650.00,  "notes": "Fuel fill-up Memphis" },
+    { "advance_id": 2,  "driver_id": 1, "load_id": null, "advance_date": "2026-02-13", "advance_type": "EzPass",      "amount": 127.62,  "notes": "Toll charges" },
+    { "advance_id": 3,  "driver_id": 1, "load_id": null, "advance_date": "2026-02-13", "advance_type": "Cash",        "amount": 1100.00, "notes": "Weekly cash advance" },
+    { "advance_id": 4,  "driver_id": 2, "load_id": 1,    "advance_date": "2026-01-19", "advance_type": "Fuel",        "amount": 420.00,  "notes": "Fuel Haleyville run" },
+    { "advance_id": 5,  "driver_id": 2, "load_id": 14,   "advance_date": "2026-03-05", "advance_type": "Fuel",        "amount": 580.00,  "notes": "Fuel Nashville run" },
+    { "advance_id": 6,  "driver_id": 2, "load_id": null, "advance_date": "2026-03-04", "advance_type": "Cash",        "amount": 500.00,  "notes": "Cash advance" },
+    { "advance_id": 7,  "driver_id": 3, "load_id": 12,   "advance_date": "2026-03-01", "advance_type": "Fuel",        "amount": 720.00,  "notes": "Fuel Tuscaloosa run" },
+    { "advance_id": 8,  "driver_id": 3, "load_id": null, "advance_date": "2026-03-01", "advance_type": "EzPass",      "amount": 95.00,   "notes": "Toll charges" },
+    { "advance_id": 9,  "driver_id": 3, "load_id": null, "advance_date": "2026-03-01", "advance_type": "Insurance",   "amount": 284.20,  "notes": "Monthly insurance" },
+    { "advance_id": 10, "driver_id": 4, "load_id": 2,    "advance_date": "2026-01-25", "advance_type": "Fuel",        "amount": 680.00,  "notes": "Fuel Birmingham-Chicago" },
+    { "advance_id": 11, "driver_id": 4, "load_id": null, "advance_date": "2026-01-24", "advance_type": "Cash",        "amount": 750.00,  "notes": "Cash advance" },
+    { "advance_id": 12, "driver_id": 4, "load_id": 4,    "advance_date": "2026-02-03", "advance_type": "Fuel",        "amount": 590.00,  "notes": "Fuel Memphis run" },
+    { "advance_id": 13, "driver_id": 5, "load_id": 3,    "advance_date": "2026-01-28", "advance_type": "Fuel",        "amount": 380.00,  "notes": "Fuel Jackson run" },
+    { "advance_id": 14, "driver_id": 5, "load_id": 5,    "advance_date": "2026-02-07", "advance_type": "Fuel",        "amount": 430.00,  "notes": "Fuel Huntsville run" },
+    { "advance_id": 15, "driver_id": 5, "load_id": null, "advance_date": "2026-02-07", "advance_type": "Cash",        "amount": 400.00,  "notes": "Cash advance" }
+  ],
+
+  "paySummaries": [
+    {
+      "summary_id": 1, "driver_id": 1,
+      "pay_period_start": "2026-02-13", "pay_period_end": "2026-02-17",
+      "total_line_haul": 5878.96, "commission_rate": 0.18,
+      "total_fsc": 873.48, "total_advances": 1877.62,
+      "insurance_deduction": 284.20, "workers_comp_deduction": 33.70,
+      "net_pay": 3498.71
+    },
+    {
+      "summary_id": 2, "driver_id": 4,
+      "pay_period_start": "2026-01-20", "pay_period_end": "2026-01-31",
+      "total_line_haul": 1750.00, "commission_rate": 0.18,
+      "total_fsc": 260.00, "total_advances": 1430.00,
+      "insurance_deduction": 284.20, "workers_comp_deduction": 33.70,
+      "net_pay": 227.10
+    },
+    {
+      "summary_id": 3, "driver_id": 5,
+      "pay_period_start": "2026-01-25", "pay_period_end": "2026-02-07",
+      "total_line_haul": 2270.00, "commission_rate": 0.15,
+      "total_fsc": 320.00, "total_advances": 810.00,
+      "insurance_deduction": 284.20, "workers_comp_deduction": 33.70,
+      "net_pay": 1101.60
+    }
+  ]
+}

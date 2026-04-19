@@ -148,6 +148,21 @@ body {
   line-height: 1.6;
 }
 
+/* ── Buttons ── */
+.btn-secondary {
+  padding: 0.5rem 1.1rem;
+  background: #fff;
+  color: #444;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #f4f4f4;
+}
+
 .btn-primary {
   padding: 0.5rem 1.1rem;
   background: #1a73e8;
@@ -160,4 +175,367 @@ body {
 
 .btn-primary:hover {
   background: #1558b0;
+}
+
+.btn-primary:disabled {
+  background: #93b8f0;
+  cursor: not-allowed;
+}
+
+/* ── Analytics Chart Explorer ── */
+.chart-card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-explorer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.chart-controls {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.control-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.control-group select {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: #fff;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.control-group select:focus {
+  outline: none;
+  border-color: #1a73e8;
+}
+
+.chart-canvas-wrap {
+  position: relative;
+  height: 320px;
+}
+
+/* ── AI Chat ── */
+.chat-section {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.chat-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.chat-section-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.chat-subtitle {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.chat-messages {
+  min-height: 160px;
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  padding: 0.25rem 0;
+}
+
+.chat-message {
+  max-width: 80%;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.chat-message-user {
+  align-self: flex-end;
+  background: #1a73e8;
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+
+.chat-message-assistant {
+  align-self: flex-start;
+  background: #f1f3f4;
+  color: #222;
+  border-bottom-left-radius: 2px;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-input-row input {
+  flex: 1;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.chat-input-row input:focus {
+  border-color: #1a73e8;
+}
+
+.sql-details {
+  margin-top: 0.5rem;
+}
+
+.sql-details summary {
+  font-size: 0.78rem;
+  color: #888;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sql-details summary:hover {
+  color: #555;
+}
+
+/* ── Table ── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 0.7rem 1rem;
+  background: #f8f8f8;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.data-table td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  color: #222;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.clickable-row:hover {
+  background: #f5f8ff;
+}
+
+.mono {
+  font-family: monospace;
+  font-size: 0.88rem;
+}
+
+.route-cell {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Status Badges ── */
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-pending  { background: #fef3c7; color: #92400e; }
+.status-complete { background: #d1fae5; color: #065f46; }
+.status-invoiced { background: #dbeafe; color: #1e40af; }
+.status-paid     { background: #ede9fe; color: #4c1d95; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.modal-overlay.hidden {
+  display: none;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  color: #888;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.modal-close:hover { color: #222; }
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* ── Detail Grid ── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.detail-section h4 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 0.6rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.3rem 0;
+  font-size: 0.88rem;
+  border-bottom: 1px solid #f4f4f4;
+}
+
+.detail-row span:first-child { color: #666; }
+
+/* ── Form Grid ── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.form-group label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #1a73e8;
+}
+
+/* ── Empty State ── */
+.empty-state {
+  padding: 3rem;
+  text-align: center;
+  color: #999;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.sql-details pre {
+  margin-top: 0.4rem;
+  padding: 0.6rem 0.8rem;
+  background: #f4f4f4;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #333;
 }
