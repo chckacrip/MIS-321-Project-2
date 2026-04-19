@@ -18,7 +18,14 @@ const STATUS_COLORS = {
   pending:  '#f59e0b',
   complete: '#10b981',
   invoiced: '#3b82f6',
-  paid:     '#6366f1',
+  paid:     '#8b5cf6',
+};
+
+const CHART_DEFAULTS = {
+  font:        { family: "'Inter', system-ui, sans-serif", size: 12 },
+  color:       '#94a3b8',
+  borderColor: '#e2e8f0',
+  gridColor:   '#f1f5f9',
 };
 
 let chartInstance = null;
@@ -56,9 +63,7 @@ export async function renderAnalytics(container, mode) {
           <span class="chat-subtitle">Ask plain-English questions about your data</span>
         </div>
         <div class="chat-messages" id="chat-messages">
-          <div class="chat-message chat-message-assistant">
-            Hi! Ask me anything about your loads, drivers, revenue, or fuel spend.
-          </div>
+          <div class="chat-message chat-message-assistant">Hi! Ask me anything about your loads, drivers, revenue, or fuel spend.</div>
         </div>
         <div class="chat-input-row">
           <input
@@ -105,34 +110,79 @@ async function updateChart(metric, groupBy) {
 
   const type = isDoughnut ? 'doughnut' : isLine ? 'line' : 'bar';
 
+  const primaryColor = '#ea580c';
+  const primaryAlpha = 'rgba(234,88,12,0.1)';
+
   const bgColors = isDoughnut
     ? labels.map(l => STATUS_COLORS[l] ?? '#94a3b8')
-    : '#1a73e8';
+    : isLine ? primaryColor : primaryColor;
 
   const dataset = {
     data: values,
-    backgroundColor: bgColors,
-    borderRadius: isDoughnut ? 0 : 4,
+    backgroundColor: isDoughnut ? bgColors : isLine ? primaryAlpha : primaryColor,
+    borderRadius: isDoughnut ? 0 : 5,
+    borderSkipped: false,
     ...(isLine ? {
-      borderColor: '#1a73e8',
-      backgroundColor: 'rgba(26,115,232,0.08)',
+      borderColor: primaryColor,
+      borderWidth: 2,
       fill: true,
-      tension: 0.3,
+      tension: 0.35,
       pointRadius: 4,
+      pointBackgroundColor: primaryColor,
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
     } : {}),
   };
 
   const dollarTick = v => '$' + Number(v).toLocaleString();
 
   const options = {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      legend: { display: isDoughnut, position: 'right' },
+      legend: {
+        display: isDoughnut,
+        position: 'right',
+        labels: {
+          font: CHART_DEFAULTS.font,
+          color: CHART_DEFAULTS.color,
+          boxWidth: 12,
+          padding: 16,
+        },
+      },
+      tooltip: {
+        backgroundColor: '#1e293b',
+        titleColor: '#f1f5f9',
+        bodyColor: '#94a3b8',
+        padding: 10,
+        cornerRadius: 7,
+        callbacks: {
+          label: ctx => isCurrency
+            ? ' $' + Number(ctx.parsed[isHorizBar ? 'x' : 'y']).toLocaleString('en-US', { minimumFractionDigits: 2 })
+            : ' ' + ctx.parsed[isHorizBar ? 'x' : 'y'],
+        },
+      },
     },
-    ...(isDoughnut ? { cutout: '60%' } : {
+    ...(isDoughnut ? { cutout: '62%' } : {
       indexAxis: isHorizBar ? 'y' : 'x',
       scales: {
-        [isHorizBar ? 'x' : 'y']: {
-          ticks: { callback: isCurrency ? dollarTick : v => v },
+        x: {
+          grid: { color: isHorizBar ? CHART_DEFAULTS.gridColor : 'transparent' },
+          border: { display: false },
+          ticks: {
+            font: CHART_DEFAULTS.font,
+            color: CHART_DEFAULTS.color,
+            callback: (isHorizBar && isCurrency) ? dollarTick : v => v,
+          },
+        },
+        y: {
+          grid: { color: isHorizBar ? 'transparent' : CHART_DEFAULTS.gridColor },
+          border: { display: false },
+          ticks: {
+            font: CHART_DEFAULTS.font,
+            color: CHART_DEFAULTS.color,
+            callback: (!isHorizBar && isCurrency) ? dollarTick : v => v,
+          },
         },
       },
     }),
