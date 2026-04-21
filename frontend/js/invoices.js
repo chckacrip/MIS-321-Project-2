@@ -1,4 +1,4 @@
-import { exportInvoicePdf } from './pdfExport.js';
+﻿import { exportInvoicePdf } from './pdfExport.js';
 const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
 export async function renderInvoices(container, mode) {
@@ -6,6 +6,14 @@ export async function renderInvoices(container, mode) {
     <div class="page">
       <div class="page-header">
         <h2>Invoices</h2>
+      </div>
+      <div class="filter-bar">
+        <input class="filter-input" type="text" id="invoices-search" placeholder="Search invoice #, load #, bill to…" />
+        <select class="filter-select" id="invoices-status-filter">
+          <option value="">All Statuses</option>
+          <option value="unpaid">Unpaid</option>
+          <option value="paid">Paid</option>
+        </select>
       </div>
       <div id="invoices-table-wrap"></div>
     </div>
@@ -27,12 +35,35 @@ export async function renderInvoices(container, mode) {
   });
 }
 
+let _allInvoices = [];
+
 async function loadTable() {
-  const invoices = await fetch('/api/invoices').then(r => r.json());
+  _allInvoices = await fetch('/api/invoices').then(r => r.json());
+
+  document.getElementById('invoices-search').addEventListener('input', renderTable);
+  document.getElementById('invoices-status-filter').addEventListener('change', renderTable);
+
+  renderTable();
+}
+
+function renderTable() {
+  const q      = (document.getElementById('invoices-search')?.value ?? '').toLowerCase();
+  const status = document.getElementById('invoices-status-filter')?.value ?? '';
+
+  const filtered = _allInvoices.filter(i => {
+    if (status && i.payment_status !== status) return false;
+    if (q) {
+      const haystack = [i.invoice_number, i.load_number, i.bill_to_name, i.origin, i.destination]
+        .join(' ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+
   const wrap = document.getElementById('invoices-table-wrap');
 
-  if (!invoices.length) {
-    wrap.innerHTML = '<p class="empty-state">No invoices yet.</p>';
+  if (!filtered.length) {
+    wrap.innerHTML = '<p class="empty-state">No invoices match your filters.</p>';
     return;
   }
 
@@ -51,7 +82,7 @@ async function loadTable() {
         </tr>
       </thead>
       <tbody>
-        ${invoices.map(i => `
+        ${filtered.map(i => `
           <tr class="clickable-row" data-id="${i.invoice_id}">
             <td class="mono">${i.invoice_number}</td>
             <td class="mono">${i.load_number}</td>
@@ -134,7 +165,8 @@ async function openDetailModal(invoiceId) {
     document.getElementById('btn-mark-paid').addEventListener('click', async () => {
       await fetch(`/api/invoices/${invoiceId}/mark-paid`, { method: 'PATCH' });
       closeModal();
-      await loadTable();
+      _allInvoices = await fetch('/api/invoices').then(r => r.json());
+      renderTable();
     });
   }
 

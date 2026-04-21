@@ -1,4 +1,4 @@
-const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 });
+﻿const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
 export async function renderDriverPay(container, mode) {
   container.innerHTML = `
@@ -7,6 +7,13 @@ export async function renderDriverPay(container, mode) {
         <h2>${mode === 'trucker' ? 'My Pay' : 'Driver Pay'}</h2>
         ${mode === 'manager' ? '<button class="btn-primary" id="btn-generate">+ Generate Pay Summary</button>' : ''}
       </div>
+      ${mode === 'manager' ? `
+      <div class="filter-bar">
+        <input class="filter-input" type="text" id="pay-search" placeholder="Search driver name…" />
+        <select class="filter-select" id="pay-driver-filter">
+          <option value="">All Drivers</option>
+        </select>
+      </div>` : ''}
       <div id="pay-table-wrap"></div>
     </div>
     <div class="modal-overlay hidden" id="modal-overlay">
@@ -26,13 +33,40 @@ export async function renderDriverPay(container, mode) {
   });
 }
 
+let _allSummaries = [];
+
 async function loadTable(driverId, mode) {
-  const url = driverId ? `/api/driver-pay?driverId=${driverId}` : '/api/driver-pay';
-  const summaries = await fetch(url).then(r => r.json());
+  const url    = driverId ? `/api/driver-pay?driverId=${driverId}` : '/api/driver-pay';
+  _allSummaries = await fetch(url).then(r => r.json());
+
+  if (mode === 'manager') {
+    const driverFilter = document.getElementById('pay-driver-filter');
+    if (driverFilter) {
+      const names = [...new Set(_allSummaries.map(s => s.driver_name).filter(Boolean))].sort();
+      driverFilter.innerHTML = `<option value="">All Drivers</option>` +
+        names.map(n => `<option value="${n}">${n}</option>`).join('');
+      driverFilter.addEventListener('change', () => renderPayTable(mode));
+    }
+    document.getElementById('pay-search')?.addEventListener('input', () => renderPayTable(mode));
+  }
+
+  renderPayTable(mode);
+}
+
+function renderPayTable(mode) {
+  const q      = (document.getElementById('pay-search')?.value ?? '').toLowerCase();
+  const driver = document.getElementById('pay-driver-filter')?.value ?? '';
+
+  const filtered = _allSummaries.filter(s => {
+    if (driver && s.driver_name !== driver) return false;
+    if (q && !(s.driver_name ?? '').toLowerCase().includes(q)) return false;
+    return true;
+  });
+
   const wrap = document.getElementById('pay-table-wrap');
 
-  if (!summaries.length) {
-    wrap.innerHTML = '<p class="empty-state">No pay summaries found.</p>';
+  if (!filtered.length) {
+    wrap.innerHTML = '<p class="empty-state">No pay summaries match your filters.</p>';
     return;
   }
 
@@ -50,7 +84,7 @@ async function loadTable(driverId, mode) {
         </tr>
       </thead>
       <tbody>
-        ${summaries.map(s => {
+        ${filtered.map(s => {
           const commission = Number(s.total_line_haul) * Number(s.commission_rate);
           return `
             <tr class="clickable-row" data-id="${s.summary_id}">
@@ -225,7 +259,8 @@ async function openGenerateModal() {
         })
       ));
       closeModal();
-      await loadTable(null, 'manager');
+      _allSummaries = await fetch('/api/driver-pay').then(r => r.json());
+      renderPayTable('manager');
     } else {
       const res = await fetch('/api/driver-pay/generate', {
         method: 'POST',
@@ -234,7 +269,8 @@ async function openGenerateModal() {
       });
       const data = await res.json();
       closeModal();
-      await loadTable(null, 'manager');
+      _allSummaries = await fetch('/api/driver-pay').then(r => r.json());
+      renderPayTable('manager');
       openDetailModal(data.summary_id);
     }
   });

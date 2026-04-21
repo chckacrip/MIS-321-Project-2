@@ -1,4 +1,4 @@
-const STATUS_ORDER = ['pending', 'complete', 'invoiced', 'paid'];
+﻿const STATUS_ORDER = ['pending', 'complete', 'invoiced', 'paid'];
 const ALL_STATUSES = ['pending', 'complete', 'invoiced', 'paid', 'cancelled'];
 
 export async function renderLoads(container, mode) {
@@ -7,6 +7,17 @@ export async function renderLoads(container, mode) {
       <div class="page-header">
         <h2>${mode === 'trucker' ? 'My Loads' : 'Loads'}</h2>
         ${mode === 'manager' ? '<button class="btn-primary" id="btn-new-load">+ New Load</button>' : ''}
+      </div>
+      <div class="filter-bar">
+        <input class="filter-input" type="text" id="loads-search" placeholder="Search load #, route, description..." />
+        <select class="filter-select" id="loads-status-filter">
+          <option value="">All Statuses</option>
+          ${ALL_STATUSES.map(s => `<option value="${s}">${cap(s)}</option>`).join('')}
+        </select>
+        ${mode === 'manager' ? `
+        <select class="filter-select" id="loads-driver-filter">
+          <option value="">All Drivers</option>
+        </select>` : ''}
       </div>
       <div id="loads-table-wrap"></div>
     </div>
@@ -26,13 +37,48 @@ export async function renderLoads(container, mode) {
   });
 }
 
-async function loadTable(driverId, mode) {
-  const url   = driverId ? `/api/loads?driverId=${driverId}` : '/api/loads';
-  const loads = await fetch(url).then(r => r.json());
-  const wrap  = document.getElementById('loads-table-wrap');
+let _allLoads = [];
 
-  if (!loads.length) {
-    wrap.innerHTML = '<p class="empty-state">No loads found.</p>';
+async function loadTable(driverId, mode) {
+  const url = driverId ? `/api/loads?driverId=${driverId}` : '/api/loads';
+  _allLoads  = await fetch(url).then(r => r.json());
+
+  if (mode === 'manager') {
+    const driverFilter = document.getElementById('loads-driver-filter');
+    if (driverFilter) {
+      const names = [...new Set(_allLoads.map(l => l.driver).filter(Boolean))].sort();
+      driverFilter.innerHTML = `<option value="">All Drivers</option>` +
+        names.map(n => `<option value="${n}">${n}</option>`).join('');
+      driverFilter.addEventListener('change', () => renderTable(mode));
+    }
+  }
+
+  document.getElementById('loads-search').addEventListener('input', () => renderTable(mode));
+  document.getElementById('loads-status-filter').addEventListener('change', () => renderTable(mode));
+
+  renderTable(mode);
+}
+
+function renderTable(mode) {
+  const q      = (document.getElementById('loads-search')?.value ?? '').toLowerCase();
+  const status = document.getElementById('loads-status-filter')?.value ?? '';
+  const driver = document.getElementById('loads-driver-filter')?.value ?? '';
+
+  const filtered = _allLoads.filter(l => {
+    if (status && l.status !== status) return false;
+    if (driver && l.driver !== driver) return false;
+    if (q) {
+      const haystack = [l.load_number, l.origin, l.destination, l.description, l.driver ?? '']
+        .join(' ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+
+  const wrap = document.getElementById('loads-table-wrap');
+
+  if (!filtered.length) {
+    wrap.innerHTML = '<p class="empty-state">No loads match your filters.</p>';
     return;
   }
 
@@ -45,7 +91,7 @@ async function loadTable(driverId, mode) {
         </tr>
       </thead>
       <tbody>
-        ${loads.map(l => `
+        ${filtered.map(l => `
           <tr class="clickable-row ${l.status === 'cancelled' ? 'row-cancelled' : ''}" data-id="${l.load_id}">
             <td class="mono">${l.load_number}</td>
             <td>${l.ship_date}</td>
@@ -63,7 +109,7 @@ async function loadTable(driverId, mode) {
 
   wrap.querySelectorAll('.clickable-row').forEach(row => {
     row.addEventListener('click', () => {
-      const load = loads.find(l => l.load_id == row.dataset.id);
+      const load = _allLoads.find(l => l.load_id == row.dataset.id);
       openDetailModal(load, mode);
     });
   });
