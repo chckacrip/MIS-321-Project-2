@@ -54,7 +54,7 @@ async function loadTable(driverId, mode) {
       </thead>
       <tbody>
         ${loads.map(l => `
-          <tr class="clickable-row" data-id="${l.load_id}">
+          <tr class="clickable-row ${l.status === 'cancelled' ? 'row-cancelled' : ''}" data-id="${l.load_id}">
             <td class="mono">${l.load_number}</td>
             <td>${l.ship_date}</td>
             <td class="route-cell">${l.origin} → ${l.destination}</td>
@@ -115,48 +115,54 @@ function openDetailModal(load, mode) {
           <div class="detail-row"><span>Address</span><span>${load.consignee_address}</span></div>
         </div>
       </div>
-      ${!isCancelled && mode === 'manager' ? `
+      ${!isCancelled && (mode === 'manager' || load.status === 'pending') ? `
         <div class="modal-actions">
           ${canAdvance ? `<button class="btn-primary" id="btn-advance-status">Mark as ${nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}</button>` : ''}
-          <div class="status-jump">
-            <label>Jump to:</label>
-            <select id="select-status">
-              <option value="">— change status —</option>
-              ${ALL_STATUSES.filter(s => s !== load.status && s !== 'cancelled').map(s =>
-                `<option value="${s}">${s.charAt(0).toUpperCase() + s.slice(1)}</option>`
-              ).join('')}
-            </select>
+          <div class="status-menu-wrap">
+            <button class="btn-icon" id="btn-status-menu" title="Change status">&#9776;</button>
+            <div class="status-menu hidden" id="status-menu">
+              ${mode === 'manager'
+                ? ALL_STATUSES.filter(s => s !== load.status && s !== 'cancelled').map(s =>
+                    `<button class="status-menu-item" data-status="${s}">Mark as ${s.charAt(0).toUpperCase() + s.slice(1)}</button>`
+                  ).join('') + `<div class="status-menu-divider"></div><button class="status-menu-item status-menu-danger" data-status="cancelled">⚠ Cancel Load</button>`
+                : `<button class="status-menu-item" data-status="complete">Mark as Complete</button>`
+              }
+            </div>
           </div>
-          <button class="btn-danger" id="btn-cancel-load">Cancel Load</button>
-        </div>
-      ` : ''}
-      ${mode === 'trucker' && load.status === 'pending' ? `
-        <div class="modal-actions">
-          <button class="btn-primary" id="btn-trucker-complete">Mark as Complete</button>
         </div>
       ` : ''}
     </div>
   `;
 
   if (canAdvance) {
-    document.getElementById('btn-advance-status').addEventListener('click', () => updateStatus(load.load_id, nextStatus, mode));
-  }
-
-  if (mode === 'manager' && !isCancelled) {
-    document.getElementById('select-status').addEventListener('change', e => {
-      if (e.target.value) updateStatus(load.load_id, e.target.value, mode);
-    });
-
-    document.getElementById('btn-cancel-load').addEventListener('click', () => {
-      if (confirm(`Cancel load ${load.load_number}? It will be kept for records.`))
-        updateStatus(load.load_id, 'cancelled', mode);
+    document.getElementById('btn-advance-status').addEventListener('click', () => {
+      const label = nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1);
+      if (confirm(`Mark load ${load.load_number} as ${label}?`))
+        updateStatus(load.load_id, nextStatus, mode);
     });
   }
 
-  if (mode === 'trucker' && load.status === 'pending') {
-    document.getElementById('btn-trucker-complete').addEventListener('click', () =>
-      updateStatus(load.load_id, 'complete', mode)
-    );
+  if (!isCancelled && (mode === 'manager' || load.status === 'pending')) {
+    const menuBtn = document.getElementById('btn-status-menu');
+    const menu    = document.getElementById('status-menu');
+
+    menuBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      menu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', () => menu.classList.add('hidden'), { once: true });
+
+    menu.querySelectorAll('.status-menu-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const status = item.dataset.status;
+        const label  = status === 'cancelled'
+          ? `Cancel load ${load.load_number}? It will be kept for records.`
+          : `Mark load ${load.load_number} as ${status.charAt(0).toUpperCase() + status.slice(1)}?`;
+        if (confirm(label))
+          updateStatus(load.load_id, status, mode);
+      });
+    });
   }
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
