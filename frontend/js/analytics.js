@@ -29,9 +29,12 @@ const CHART_DEFAULTS = {
 };
 
 let chartInstance = null;
-const chatHistory = [
-  { role: 'assistant', html: 'Hi! Ask me anything about your loads, drivers, revenue, or fuel spend.' },
-];
+const WELCOME_MESSAGE = 'Hi! Ask me anything about your loads, drivers, revenue, or fuel spend.';
+const chatHistory = [{ role: 'assistant', html: escapeHtml(WELCOME_MESSAGE) }];
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 export async function renderAnalytics(container, mode) {
   container.innerHTML = `
@@ -199,6 +202,17 @@ async function updateChart(metric, groupBy) {
   });
 }
 
+function restoreChatHistory() {
+  const messagesEl = document.getElementById('chat-messages');
+  for (const msg of chatHistory) {
+    const el = document.createElement('div');
+    el.className = `chat-message chat-message-${msg.role}`;
+    el.innerHTML = msg.html;
+    messagesEl.appendChild(el);
+  }
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
 function setupChat() {
   const messagesEl = document.getElementById('chat-messages');
   const inputEl    = document.getElementById('chat-input');
@@ -209,9 +223,9 @@ function setupChat() {
     if (!message) return;
 
     inputEl.value = '';
-    appendMessage('user', message);
+    appendMessage('user', message, message);
 
-    const thinking = appendMessage('assistant', '...');
+    const thinking = appendThinking();
     sendBtn.disabled = true;
 
     try {
@@ -222,30 +236,38 @@ function setupChat() {
       });
       const data = await res.json();
 
-      thinking.innerHTML = '';
+      thinking.className = 'chat-message chat-message-assistant';
 
-      const replyText = document.createElement('span');
-      replyText.textContent = data.reply;
-      thinking.appendChild(replyText);
-
+      let html = `<span>${escapeHtml(data.reply)}</span>`;
       if (data.sql) {
-        const details = document.createElement('details');
-        details.className = 'sql-details';
-        details.innerHTML = `<summary>View SQL</summary><pre>${data.sql}</pre>`;
-        thinking.appendChild(details);
+        html += `<details class="sql-details"><summary>View SQL</summary><pre>${escapeHtml(data.sql)}</pre></details>`;
       }
+      thinking.innerHTML = html;
+      chatHistory.push({ role: 'assistant', html });
     } catch {
+      thinking.className = 'chat-message chat-message-assistant';
       thinking.textContent = 'Something went wrong. Please try again.';
+      chatHistory.push({ role: 'assistant', html: 'Something went wrong. Please try again.' });
     } finally {
       sendBtn.disabled = false;
       inputEl.focus();
     }
   }
 
-  function appendMessage(role, text) {
+  function appendMessage(role, text, rawHtml) {
     const el = document.createElement('div');
     el.className = `chat-message chat-message-${role}`;
     el.textContent = text;
+    messagesEl.appendChild(el);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    chatHistory.push({ role, html: escapeHtml(rawHtml ?? text) });
+    return el;
+  }
+
+  function appendThinking() {
+    const el = document.createElement('div');
+    el.className = 'chat-message chat-message-assistant chat-thinking';
+    el.innerHTML = '<span></span><span></span><span></span>';
     messagesEl.appendChild(el);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return el;

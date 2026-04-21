@@ -36,7 +36,10 @@ var chatClient = openAiClient.GetChatClient("gpt-4o");
 var schemaChunks = new List<SchemaChunk>();
 var conversationHistory = new List<ChatMessage>();
 
+builder.Services.AddControllers();
+builder.Services.AddSingleton(new DatabaseOptions(connectionString));
 builder.Services.AddSingleton(schemaChunks);
+builder.Services.AddSingleton(conversationHistory);
 builder.Services.AddSingleton(embeddingClient);
 builder.Services.AddSingleton(chatClient);
 
@@ -52,9 +55,6 @@ await Seeder.EmbedSchemaAtStartup(schemaChunks, embeddingClient, connectionStrin
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
-
-app.MapLoadsEndpoints(connectionString);
-app.MapChatEndpoint(connectionString, conversationHistory);
-app.MapAnalyticsEndpoints(connectionString);
+app.MapControllers();
 
 app.Run();

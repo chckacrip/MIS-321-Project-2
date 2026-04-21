@@ -1,5 +1,7 @@
 namespace TruckingApi;
 
+public record DatabaseOptions(string ConnectionString);
+
 public record SchemaChunk(string Text, float[] Embedding);
 public record ChatRequest(string Message);
 
