@@ -115,20 +115,24 @@ function openDetailModal(load, mode) {
           <div class="detail-row"><span>Address</span><span>${load.consignee_address}</span></div>
         </div>
       </div>
-      ${!isCancelled && (mode === 'manager' || load.status === 'pending') ? `
+      ${!isCancelled && mode === 'manager' ? `
         <div class="modal-actions">
           ${canAdvance ? `<button class="btn-primary" id="btn-advance-status">Mark as ${nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}</button>` : ''}
           <div class="status-menu-wrap">
             <button class="btn-icon" id="btn-status-menu" title="Change status">&#9776;</button>
             <div class="status-menu hidden" id="status-menu">
-              ${mode === 'manager'
-                ? ALL_STATUSES.filter(s => s !== load.status && s !== 'cancelled').map(s =>
-                    `<button class="status-menu-item" data-status="${s}">Mark as ${s.charAt(0).toUpperCase() + s.slice(1)}</button>`
-                  ).join('') + `<div class="status-menu-divider"></div><button class="status-menu-item status-menu-danger" data-status="cancelled">⚠ Cancel Load</button>`
-                : `<button class="status-menu-item" data-status="complete">Mark as Complete</button>`
-              }
+              ${ALL_STATUSES.filter(s => s !== load.status && s !== 'cancelled').map(s =>
+                `<button class="status-menu-item" data-status="${s}">Mark as ${s.charAt(0).toUpperCase() + s.slice(1)}</button>`
+              ).join('')}
+              <div class="status-menu-divider"></div>
+              <button class="status-menu-item status-menu-danger" data-status="cancelled">⚠ Cancel Load</button>
             </div>
           </div>
+        </div>
+      ` : ''}
+      ${mode === 'trucker' && load.status === 'pending' ? `
+        <div class="modal-actions">
+          <button class="btn-primary" id="btn-trucker-complete">Mark as Complete</button>
         </div>
       ` : ''}
     </div>
@@ -142,7 +146,7 @@ function openDetailModal(load, mode) {
     });
   }
 
-  if (!isCancelled && (mode === 'manager' || load.status === 'pending')) {
+  if (!isCancelled && mode === 'manager') {
     const menuBtn = document.getElementById('btn-status-menu');
     const menu    = document.getElementById('status-menu');
 
@@ -162,6 +166,13 @@ function openDetailModal(load, mode) {
         if (confirm(label))
           updateStatus(load.load_id, status, mode);
       });
+    });
+  }
+
+  if (mode === 'trucker' && load.status === 'pending') {
+    document.getElementById('btn-trucker-complete').addEventListener('click', () => {
+      if (confirm(`Mark load ${load.load_number} as Complete?`))
+        updateStatus(load.load_id, 'complete', mode);
     });
   }
 
