@@ -15,12 +15,11 @@ export async function renderLoads(container, mode) {
     </div>
   `;
 
-  const driverId = mode === 'trucker' ? 1 : null; // TODO: replace 1 with logged-in driver id
+  const driverId = mode === 'trucker' ? 1 : null;
   await loadTable(driverId, mode);
 
-  if (mode === 'manager') {
+  if (mode === 'manager')
     document.getElementById('btn-new-load').addEventListener('click', () => openNewLoadModal());
-  }
 
   document.getElementById('modal-overlay').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeModal();
@@ -28,10 +27,9 @@ export async function renderLoads(container, mode) {
 }
 
 async function loadTable(driverId, mode) {
-  const url = driverId ? `/api/loads?driverId=${driverId}` : '/api/loads';
+  const url   = driverId ? `/api/loads?driverId=${driverId}` : '/api/loads';
   const loads = await fetch(url).then(r => r.json());
-
-  const wrap = document.getElementById('loads-table-wrap');
+  const wrap  = document.getElementById('loads-table-wrap');
 
   if (!loads.length) {
     wrap.innerHTML = '<p class="empty-state">No loads found.</p>';
@@ -42,14 +40,8 @@ async function loadTable(driverId, mode) {
     <table class="data-table">
       <thead>
         <tr>
-          <th>Load #</th>
-          <th>Ship Date</th>
-          <th>Route</th>
-          <th>Description</th>
-          <th>Driver</th>
-          <th>Line Haul</th>
-          <th>FSC</th>
-          <th>Status</th>
+          <th>Load #</th><th>Ship Date</th><th>Route</th><th>Description</th>
+          <th>Driver</th><th>Line Haul</th><th>FSC</th><th>Status</th>
         </tr>
       </thead>
       <tbody>
@@ -78,7 +70,7 @@ async function loadTable(driverId, mode) {
 }
 
 function openDetailModal(load, mode) {
-  const modal = document.getElementById('modal');
+  const modal       = document.getElementById('modal');
   const isCancelled = load.status === 'cancelled';
   const canAdvance  = mode === 'manager' && !isCancelled && STATUS_ORDER.indexOf(load.status) < STATUS_ORDER.length - 1;
   const nextStatus  = canAdvance ? STATUS_ORDER[STATUS_ORDER.indexOf(load.status) + 1] : null;
@@ -115,21 +107,30 @@ function openDetailModal(load, mode) {
           <div class="detail-row"><span>Address</span><span>${load.consignee_address}</span></div>
         </div>
       </div>
+
       ${!isCancelled && mode === 'manager' ? `
         <div class="modal-actions">
-          ${canAdvance ? `<button class="btn-primary" id="btn-advance-status">Mark as ${nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}</button>` : ''}
+          ${canAdvance ? `<button class="btn-primary" id="btn-advance-status">Mark as ${cap(nextStatus)}</button>` : ''}
           <div class="status-menu-wrap">
-            <button class="btn-icon" id="btn-status-menu" title="Change status">&#9776;</button>
+            <button class="btn-icon" id="btn-status-menu" title="Options">&#9776;</button>
             <div class="status-menu hidden" id="status-menu">
-              ${ALL_STATUSES.filter(s => s !== load.status && s !== 'cancelled').map(s =>
-                `<button class="status-menu-item" data-status="${s}">Mark as ${s.charAt(0).toUpperCase() + s.slice(1)}</button>`
-              ).join('')}
+              <button class="status-menu-item" id="btn-menu-edit">Edit Load</button>
+              <button class="status-menu-item" id="btn-menu-invoice">Generate Invoice</button>
+              <div class="status-menu-has-sub">
+                <div class="status-menu-item">Change Status <span class="submenu-arrow">›</span></div>
+                <div class="status-submenu">
+                  ${ALL_STATUSES.filter(s => s !== load.status && s !== 'cancelled').map(s =>
+                    `<button class="status-menu-item status-sub-item" data-status="${s}">${cap(s)}</button>`
+                  ).join('')}
+                </div>
+              </div>
               <div class="status-menu-divider"></div>
-              <button class="status-menu-item status-menu-danger" data-status="cancelled">⚠ Cancel Load</button>
+              <button class="status-menu-item status-menu-danger" id="btn-menu-cancel">⚠ Cancel Load</button>
             </div>
           </div>
         </div>
       ` : ''}
+
       ${mode === 'trucker' && load.status === 'pending' ? `
         <div class="modal-actions">
           <button class="btn-primary" id="btn-trucker-complete">Mark as Complete</button>
@@ -138,11 +139,12 @@ function openDetailModal(load, mode) {
     </div>
   `;
 
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+
   if (canAdvance) {
     document.getElementById('btn-advance-status').addEventListener('click', () => {
-      const label = nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1);
-      if (confirm(`Mark load ${load.load_number} as ${label}?`))
-        updateStatus(load.load_id, nextStatus, mode);
+      if (confirm(`Mark load ${load.load_number} as ${cap(nextStatus)}?`))
+        updateStatus(load.load_id, nextStatus, mode, load);
     });
   }
 
@@ -157,30 +159,41 @@ function openDetailModal(load, mode) {
 
     document.addEventListener('click', () => menu.classList.add('hidden'), { once: true });
 
-    menu.querySelectorAll('.status-menu-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const status = item.dataset.status;
-        const label  = status === 'cancelled'
-          ? `Cancel load ${load.load_number}? It will be kept for records.`
-          : `Mark load ${load.load_number} as ${status.charAt(0).toUpperCase() + status.slice(1)}?`;
-        if (confirm(label))
-          updateStatus(load.load_id, status, mode);
+    menu.querySelectorAll('.status-sub-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = btn.dataset.status;
+        if (confirm(`Mark load ${load.load_number} as ${cap(s)}?`))
+          updateStatus(load.load_id, s, mode, load);
       });
+    });
+
+    document.getElementById('btn-menu-edit').addEventListener('click', () => {
+      menu.classList.add('hidden');
+      openEditLoadModal(load, mode);
+    });
+
+    document.getElementById('btn-menu-invoice').addEventListener('click', () => {
+      menu.classList.add('hidden');
+      generateInvoiceFromLoad(load);
+    });
+
+    document.getElementById('btn-menu-cancel').addEventListener('click', () => {
+      if (confirm(`Cancel load ${load.load_number}? It will be kept for records.`))
+        updateStatus(load.load_id, 'cancelled', mode, load);
     });
   }
 
   if (mode === 'trucker' && load.status === 'pending') {
     document.getElementById('btn-trucker-complete').addEventListener('click', () => {
       if (confirm(`Mark load ${load.load_number} as Complete?`))
-        updateStatus(load.load_id, 'complete', mode);
+        updateStatus(load.load_id, 'complete', mode, load);
     });
   }
 
-  document.getElementById('modal-close').addEventListener('click', closeModal);
   showModal();
 }
 
-async function updateStatus(loadId, status, mode) {
+async function updateStatus(loadId, status, mode, load) {
   await fetch(`/api/loads/${loadId}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -190,80 +203,144 @@ async function updateStatus(loadId, status, mode) {
   await loadTable(mode === 'trucker' ? 1 : null, mode);
 }
 
+async function generateInvoiceFromLoad(load) {
+  const res  = await fetch('/api/invoices/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      loadId:      load.load_id,
+      invoiceDate: new Date().toISOString().split('T')[0],
+    }),
+  });
+
+  const data      = await res.json();
+  const alreadyExisted = res.status === 409;
+
+  closeModal();
+
+  if (alreadyExisted) {
+    const modal = document.getElementById('modal');
+    modal.innerHTML = `
+      <div class="modal-header">
+        <h3>Invoice Already Exists</h3>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:1.5rem">An invoice already exists for load ${load.load_number}. Want to open it?</p>
+        <div class="modal-actions">
+          <button class="btn-secondary" id="btn-stay">Stay Here</button>
+          <button class="btn-primary" id="btn-go">Open Invoice</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('btn-stay').addEventListener('click', closeModal);
+    document.getElementById('btn-go').addEventListener('click', () => {
+      localStorage.setItem('openInvoiceId', data.invoice_id);
+      window.location.hash = '#invoices';
+    });
+    showModal();
+  } else {
+    localStorage.setItem('openInvoiceId', data.invoice_id);
+    window.location.hash = '#invoices';
+  }
+}
+
+function loadFormFields(drivers, load = null) {
+  const driverOptions = `
+    <option value="">Unassigned</option>
+    ${drivers.map(d => `<option value="${d.driver_id}" ${load?.driver_id == d.driver_id ? 'selected' : ''}>${d.name} (Unit ${d.unit_number})</option>`).join('')}
+  `;
+
+  return `
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Load Number</label>
+        <input name="loadNumber" required placeholder="e.g. 1061465" value="${load?.load_number ?? ''}" />
+      </div>
+      <div class="form-group">
+        <label>Ship Date</label>
+        <input name="shipDate" type="date" required value="${load?.ship_date ?? ''}" />
+      </div>
+      <div class="form-group">
+        <label>Origin</label>
+        <input name="origin" required placeholder="e.g. Birmingham, AL" value="${load?.origin ?? ''}" />
+      </div>
+      <div class="form-group">
+        <label>Destination</label>
+        <input name="destination" required placeholder="e.g. Nashville, TN" value="${load?.destination ?? ''}" />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input name="description" required placeholder="e.g. Steel Coil" value="${load?.description ?? ''}" />
+      </div>
+      <div class="form-group">
+        <label>Driver</label>
+        <select name="driverId">${driverOptions}</select>
+      </div>
+      <div class="form-group">
+        <label>Line Haul Rate</label>
+        <input name="lineHaulRate" type="number" step="0.01" required placeholder="0.00" value="${load?.line_haul_rate ?? ''}" />
+      </div>
+      <div class="form-group">
+        <label>FSC Rate</label>
+        <input name="fscRate" type="number" step="0.01" placeholder="0.00" value="${load?.fsc_rate ?? 0}" />
+      </div>
+      <div class="form-group">
+        <label>Terms</label>
+        <input name="terms" value="${load?.terms ?? 'Net 30'}" />
+      </div>
+      <div class="form-group">
+        <label>Bill To Name</label>
+        <input name="billToName" placeholder="Company name" value="${load?.bill_to_name ?? ''}" />
+      </div>
+      <div class="form-group">
+        <label>Bill To Address</label>
+        <input name="billToAddress" placeholder="Street, City, State" value="${load?.bill_to_address ?? ''}" />
+      </div>
+      <div class="form-group">
+        <label>Consignee Name</label>
+        <input name="consigneeName" placeholder="Company name" value="${load?.consignee_name ?? ''}" />
+      </div>
+      <div class="form-group">
+        <label>Consignee Address</label>
+        <input name="consigneeAddress" placeholder="Street, City, State" value="${load?.consignee_address ?? ''}" />
+      </div>
+    </div>
+  `;
+}
+
+function formToBody(f) {
+  return {
+    loadNumber:       f.loadNumber.value,
+    shipDate:         f.shipDate.value,
+    origin:           f.origin.value,
+    destination:      f.destination.value,
+    description:      f.description.value,
+    lineHaulRate:     parseFloat(f.lineHaulRate.value),
+    fscRate:          parseFloat(f.fscRate.value) || 0,
+    terms:            f.terms.value,
+    status:           'pending',
+    billToName:       f.billToName.value,
+    billToAddress:    f.billToAddress.value,
+    consigneeName:    f.consigneeName.value,
+    consigneeAddress: f.consigneeAddress.value,
+    driverId:         f.driverId.value ? parseInt(f.driverId.value) : null,
+  };
+}
+
 async function openNewLoadModal() {
   const drivers = await fetch('/api/drivers').then(r => r.json());
+  const modal   = document.getElementById('modal');
 
-  const modal = document.getElementById('modal');
   modal.innerHTML = `
     <div class="modal-header">
       <h3>New Load</h3>
       <button class="modal-close" id="modal-close">&times;</button>
     </div>
     <div class="modal-body">
-      <form id="new-load-form">
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Load Number</label>
-            <input name="loadNumber" required placeholder="e.g. 1061465" />
-          </div>
-          <div class="form-group">
-            <label>Ship Date</label>
-            <input name="shipDate" type="date" required />
-          </div>
-          <div class="form-group">
-            <label>Origin</label>
-            <input name="origin" required placeholder="e.g. Birmingham, AL" />
-          </div>
-          <div class="form-group">
-            <label>Destination</label>
-            <input name="destination" required placeholder="e.g. Nashville, TN" />
-          </div>
-          <div class="form-group">
-            <label>Description</label>
-            <input name="description" required placeholder="e.g. Steel Coil" />
-          </div>
-          <div class="form-group">
-            <label>Driver</label>
-            <select name="driverId">
-              <option value="">Unassigned</option>
-              ${drivers.map(d => `<option value="${d.driver_id}">${d.name} (Unit ${d.unit_number})</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Line Haul Rate</label>
-            <input name="lineHaulRate" type="number" step="0.01" required placeholder="0.00" />
-          </div>
-          <div class="form-group">
-            <label>FSC Rate</label>
-            <input name="fscRate" type="number" step="0.01" value="0" placeholder="0.00" />
-          </div>
-          <div class="form-group">
-            <label>Terms</label>
-            <input name="terms" value="Net 30" />
-          </div>
-          <div class="form-group">
-            <label>Status</label>
-            <select name="status">
-              ${STATUS_ORDER.map(s => `<option value="${s}">${s}</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Bill To Name</label>
-            <input name="billToName" placeholder="Company name" />
-          </div>
-          <div class="form-group">
-            <label>Bill To Address</label>
-            <input name="billToAddress" placeholder="Street, City, State" />
-          </div>
-          <div class="form-group">
-            <label>Consignee Name</label>
-            <input name="consigneeName" placeholder="Company name" />
-          </div>
-          <div class="form-group">
-            <label>Consignee Address</label>
-            <input name="consigneeAddress" placeholder="Street, City, State" />
-          </div>
-        </div>
+      <form id="load-form">
+        ${loadFormFields(drivers)}
         <div class="modal-actions">
           <button type="button" class="btn-secondary" id="modal-close-btn">Cancel</button>
           <button type="submit" class="btn-primary">Create Load</button>
@@ -275,28 +352,12 @@ async function openNewLoadModal() {
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-close-btn').addEventListener('click', closeModal);
 
-  document.getElementById('new-load-form').addEventListener('submit', async e => {
+  document.getElementById('load-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const f = e.target;
     await fetch('/api/loads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        loadNumber:       f.loadNumber.value,
-        shipDate:         f.shipDate.value,
-        origin:           f.origin.value,
-        destination:      f.destination.value,
-        description:      f.description.value,
-        lineHaulRate:     parseFloat(f.lineHaulRate.value),
-        fscRate:          parseFloat(f.fscRate.value) || 0,
-        terms:            f.terms.value,
-        status:           f.status.value,
-        billToName:       f.billToName.value,
-        billToAddress:    f.billToAddress.value,
-        consigneeName:    f.consigneeName.value,
-        consigneeAddress: f.consigneeAddress.value,
-        driverId:         f.driverId.value ? parseInt(f.driverId.value) : null,
-      }),
+      body: JSON.stringify(formToBody(e.target)),
     });
     closeModal();
     await loadTable(null, 'manager');
@@ -305,10 +366,46 @@ async function openNewLoadModal() {
   showModal();
 }
 
-function showModal() {
-  document.getElementById('modal-overlay').classList.remove('hidden');
+async function openEditLoadModal(load, mode) {
+  const drivers = await fetch('/api/drivers').then(r => r.json());
+  const modal   = document.getElementById('modal');
+
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h3>Edit Load ${load.load_number}</h3>
+      <button class="modal-close" id="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="load-form">
+        ${loadFormFields(drivers, load)}
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="modal-close-btn">Cancel</button>
+          <button type="submit" class="btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  const goBack = () => openDetailModal(load, mode);
+  document.getElementById('modal-close').addEventListener('click', goBack);
+  document.getElementById('modal-close-btn').addEventListener('click', goBack);
+
+  document.getElementById('load-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const body = formToBody(e.target);
+    body.status = load.status;
+    await fetch(`/api/loads/${load.load_id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    closeModal();
+    await loadTable(mode === 'trucker' ? 1 : null, mode);
+  });
+
+  showModal();
 }
 
-function closeModal() {
-  document.getElementById('modal-overlay').classList.add('hidden');
-}
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+function showModal()  { document.getElementById('modal-overlay').classList.remove('hidden'); }
+function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }

@@ -689,10 +689,30 @@ body {
 .btn-icon:hover { background: var(--color-bg-secondary); }
 
 .status-menu-wrap { position: relative; }
-.status-menu { position: absolute; bottom: calc(100% + 6px); right: 0; background: #fff; border: 1px solid var(--color-border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 180px; overflow: hidden; z-index: 100; }
+.status-menu { position: absolute; bottom: calc(100% + 6px); right: 0; background: #fff; border: 1px solid var(--color-border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 180px; overflow: visible; z-index: 100; }
 .status-menu.hidden { display: none; }
 .status-menu-item { display: block; width: 100%; text-align: left; padding: 0.6rem 1rem; background: none; border: none; cursor: pointer; font-size: 0.875rem; color: var(--color-text); }
 .status-menu-item:hover { background: var(--color-bg-secondary); }
 .status-menu-divider { height: 1px; background: var(--color-border); margin: 0.25rem 0; }
 .status-menu-danger { color: #ef4444; }
 .status-menu-danger:hover { background: #fee2e2; }
+
+#menu-status .status-menu-item[id='btn-menu-back'] { color: var(--color-text-secondary); font-size: 0.8rem; }
+
+.status-menu-has-sub { position: relative; }
+.status-menu-has-sub > .status-menu-item { cursor: default; display: flex; justify-content: space-between; align-items: center; }
+.submenu-arrow { font-size: 0.8rem; color: var(--color-text-secondary); }
+.status-submenu {
+  display: none;
+  position: absolute;
+  right: 100%;
+  top: 0;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  min-width: 160px;
+  overflow: hidden;
+  z-index: 101;
+}
+.status-menu-has-sub:hover .status-submenu { display: block; }

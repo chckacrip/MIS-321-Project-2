@@ -71,7 +71,7 @@ public class InvoicesController : ControllerBase
         checkCmd.Parameters.AddWithValue("@loadId", body.LoadId);
         var existing = await checkCmd.ExecuteScalarAsync();
         if (existing != null)
-            return Conflict(new { error = "Invoice already exists for this load." });
+            return Conflict(new { error = "Invoice already exists for this load.", invoice_id = Convert.ToInt32(existing) });
 
         await using var numCmd = conn.CreateCommand();
         numCmd.CommandText = "SELECT COALESCE(MAX(CAST(invoice_number AS INTEGER)), 101630) + 1 FROM invoices";

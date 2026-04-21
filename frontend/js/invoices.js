@@ -6,7 +6,6 @@ export async function renderInvoices(container, mode) {
     <div class="page">
       <div class="page-header">
         <h2>Invoices</h2>
-        <button class="btn-primary" id="btn-generate">+ Generate Invoice</button>
       </div>
       <div id="invoices-table-wrap"></div>
     </div>
@@ -17,7 +16,12 @@ export async function renderInvoices(container, mode) {
 
   await loadTable();
 
-  document.getElementById('btn-generate').addEventListener('click', () => openGenerateModal());
+  const pendingId = localStorage.getItem('openInvoiceId');
+  if (pendingId) {
+    localStorage.removeItem('openInvoiceId');
+    openDetailModal(pendingId);
+  }
+
   document.getElementById('modal-overlay').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeModal();
   });
@@ -137,67 +141,6 @@ async function openDetailModal(invoiceId) {
   showModal();
 }
 
-async function openGenerateModal() {
-  const loads = await fetch('/api/loads').then(r => r.json());
-  const eligible = loads.filter(l => l.status === 'complete' || l.status === 'invoiced' || l.status === 'paid');
-
-  const modal = document.getElementById('modal');
-  modal.innerHTML = `
-    <div class="modal-header">
-      <h3>Generate Invoice</h3>
-      <button class="modal-close" id="modal-close">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="generate-form">
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Load</label>
-            <select name="loadId" required>
-              <option value="">Select a completed load...</option>
-              ${eligible.map(l => `<option value="${l.load_id}">${l.load_number} — ${l.origin} → ${l.destination} (${l.status})</option>`).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Invoice Date</label>
-            <input name="invoiceDate" type="date" value="${new Date().toISOString().split('T')[0]}" required />
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-secondary" id="modal-close-btn">Cancel</button>
-          <button type="submit" class="btn-primary">Generate</button>
-        </div>
-      </form>
-    </div>
-  `;
-
-  document.getElementById('modal-close').addEventListener('click', closeModal);
-  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
-
-  document.getElementById('generate-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const f = e.target;
-    const res = await fetch('/api/invoices/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        loadId:      parseInt(f.loadId.value),
-        invoiceDate: f.invoiceDate.value,
-      }),
-    });
-
-    if (res.status === 409) {
-      alert('An invoice already exists for this load.');
-      return;
-    }
-
-    const data = await res.json();
-    closeModal();
-    await loadTable();
-    openDetailModal(data.invoice_id);
-  });
-
-  showModal();
-}
 
 function showModal()  { document.getElementById('modal-overlay').classList.remove('hidden'); }
 function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }

@@ -138,6 +138,53 @@ public class LoadsController : ControllerBase
         return Ok(new { load_id = newId });
     }
 
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateLoad(int id, [FromBody] CreateLoadRequest body)
+    {
+        await using var conn = new SqliteConnection(_conn);
+        await conn.OpenAsync();
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            UPDATE loads SET
+                load_number = @num, ship_date = @date, origin = @orig,
+                destination = @dest, description = @desc, line_haul_rate = @lh,
+                fsc_rate = @fsc, terms = @terms, bill_to_name = @btn,
+                bill_to_address = @bta, consignee_name = @cn, consignee_address = @ca
+            WHERE load_id = @id
+        """;
+        cmd.Parameters.AddWithValue("@num",  body.LoadNumber);
+        cmd.Parameters.AddWithValue("@date", body.ShipDate);
+        cmd.Parameters.AddWithValue("@orig", body.Origin);
+        cmd.Parameters.AddWithValue("@dest", body.Destination);
+        cmd.Parameters.AddWithValue("@desc", body.Description);
+        cmd.Parameters.AddWithValue("@lh",   body.LineHaulRate);
+        cmd.Parameters.AddWithValue("@fsc",  body.FscRate);
+        cmd.Parameters.AddWithValue("@terms",body.Terms);
+        cmd.Parameters.AddWithValue("@btn",  body.BillToName);
+        cmd.Parameters.AddWithValue("@bta",  body.BillToAddress);
+        cmd.Parameters.AddWithValue("@cn",   body.ConsigneeName);
+        cmd.Parameters.AddWithValue("@ca",   body.ConsigneeAddress);
+        cmd.Parameters.AddWithValue("@id",   id);
+        await cmd.ExecuteNonQueryAsync();
+
+        await using var delCmd = conn.CreateCommand();
+        delCmd.CommandText = "DELETE FROM load_drivers WHERE load_id = @id";
+        delCmd.Parameters.AddWithValue("@id", id);
+        await delCmd.ExecuteNonQueryAsync();
+
+        if (body.DriverId.HasValue)
+        {
+            await using var ldCmd = conn.CreateCommand();
+            ldCmd.CommandText = "INSERT INTO load_drivers (load_id, driver_id) VALUES (@lid, @did)";
+            ldCmd.Parameters.AddWithValue("@lid", id);
+            ldCmd.Parameters.AddWithValue("@did", body.DriverId.Value);
+            await ldCmd.ExecuteNonQueryAsync();
+        }
+
+        return Ok();
+    }
+
     [HttpPatch("{id:int}/status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusRequest body)
     {
