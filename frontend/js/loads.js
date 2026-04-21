@@ -115,7 +115,7 @@ function openDetailModal(load, mode) {
           <div class="detail-row"><span>Address</span><span>${load.consignee_address}</span></div>
         </div>
       </div>
-      ${mode === 'manager' && !isCancelled ? `
+      ${!isCancelled && mode === 'manager' ? `
         <div class="modal-actions">
           ${canAdvance ? `<button class="btn-primary" id="btn-advance-status">Mark as ${nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}</button>` : ''}
           <div class="status-jump">
@@ -128,6 +128,11 @@ function openDetailModal(load, mode) {
             </select>
           </div>
           <button class="btn-danger" id="btn-cancel-load">Cancel Load</button>
+        </div>
+      ` : ''}
+      ${mode === 'trucker' && load.status === 'pending' ? `
+        <div class="modal-actions">
+          <button class="btn-primary" id="btn-trucker-complete">Mark as Complete</button>
         </div>
       ` : ''}
     </div>
@@ -146,6 +151,12 @@ function openDetailModal(load, mode) {
       if (confirm(`Cancel load ${load.load_number}? It will be kept for records.`))
         updateStatus(load.load_id, 'cancelled', mode);
     });
+  }
+
+  if (mode === 'trucker' && load.status === 'pending') {
+    document.getElementById('btn-trucker-complete').addEventListener('click', () =>
+      updateStatus(load.load_id, 'complete', mode)
+    );
   }
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
