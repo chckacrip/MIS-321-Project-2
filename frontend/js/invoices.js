@@ -1,3 +1,4 @@
+import { exportInvoicePdf } from './pdfExport.js';
 const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
 export async function renderInvoices(container, mode) {
@@ -114,9 +115,7 @@ async function openDetailModal(invoiceId) {
       </div>
 
       <div class="modal-actions">
-        <button class="btn-secondary" id="btn-export-pdf" disabled title="Coming soon">
-          Export PDF (TODO)
-        </button>
+        <button class="btn-secondary" id="btn-export-pdf">Export PDF</button>
         ${inv.payment_status === 'unpaid' ? `
           <button class="btn-primary" id="btn-mark-paid">Mark as Paid</button>
         ` : ''}
@@ -125,6 +124,7 @@ async function openDetailModal(invoiceId) {
   `;
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('btn-export-pdf').addEventListener('click', () => exportInvoicePdf(inv));
 
   if (inv.payment_status === 'unpaid') {
     document.getElementById('btn-mark-paid').addEventListener('click', async () => {
