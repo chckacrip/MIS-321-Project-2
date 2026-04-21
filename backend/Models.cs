@@ -13,3 +13,10 @@ public record CreateLoadRequest(
 );
 
 public record UpdateStatusRequest(string Status);
+
+public record GeneratePayRequest(
+    int DriverId, string PayPeriodStart, string PayPeriodEnd,
+    decimal InsuranceDeduction, decimal WorkersCompDeduction
+);
+
+public record GenerateInvoiceRequest(int LoadId, string? InvoiceDate);

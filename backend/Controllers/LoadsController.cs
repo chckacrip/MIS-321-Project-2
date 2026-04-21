@@ -141,7 +141,7 @@ public class LoadsController : ControllerBase
     [HttpPatch("{id:int}/status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusRequest body)
     {
-        var validStatuses = new[] { "pending", "complete", "invoiced", "paid" };
+        var validStatuses = new[] { "pending", "complete", "invoiced", "paid", "cancelled" };
         if (!validStatuses.Contains(body.Status))
             return BadRequest(new { error = "Invalid status" });
 

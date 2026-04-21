@@ -668,3 +668,17 @@ body {
   color: var(--color-text-secondary);
   line-height: 1.6;
 }
+
+.negative { color: #ef4444; }
+.net-pay  { color: #10b981; font-size: 1.1rem; }
+
+.status-cancelled { background: #fee2e2; color: #991b1b; }
+.load-cancelled { opacity: 0.55; pointer-events: none; }
+.load-cancelled .modal-actions { pointer-events: all; opacity: 1; }
+
+.status-jump { display: flex; align-items: center; gap: 0.5rem; }
+.status-jump label { font-size: 0.85rem; color: var(--color-text-secondary); white-space: nowrap; }
+.status-jump select { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); border-radius: 6px; font-size: 0.85rem; }
+
+.btn-danger { padding: 0.5rem 1rem; background: #ef4444; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }
+.btn-danger:hover { background: #dc2626; }

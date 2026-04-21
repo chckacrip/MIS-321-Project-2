@@ -15,7 +15,7 @@ using TruckingApi;
 var contentRoot = Directory.GetCurrentDirectory();
 var wwwroot = Path.Combine(contentRoot, "wwwroot");
 if (!Directory.Exists(wwwroot))
-    wwwroot = Path.GetFullPath(Path.Combine(contentRoot, "..", "..", "frontend"));
+    wwwroot = Path.GetFullPath(Path.Combine(contentRoot, "..", "frontend"));
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -27,7 +27,7 @@ var apiKey = builder.Configuration["OpenAI:ApiKey"]
     ?? throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
 
 // SWAP THIS for MySQL: builder.Configuration.GetConnectionString("MySQL")
-var connectionString = "Data Source=trucking.db";
+var connectionString = "Data Source=SQLITE_trucking.db";
 
 var openAiClient = new OpenAI.OpenAIClient(apiKey);
 var embeddingClient = openAiClient.GetEmbeddingClient("text-embedding-3-small");
@@ -43,16 +43,19 @@ builder.Services.AddSingleton(conversationHistory);
 builder.Services.AddSingleton(embeddingClient);
 builder.Services.AddSingleton(chatClient);
 
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://127.0.0.1:5500", "http://localhost:5500").AllowAnyHeader().AllowAnyMethod()));
+
 var app = builder.Build();
 
 // Resolve path to mock data — works locally and in Docker
-var dataJsonPath = Path.Combine(app.Environment.WebRootPath ?? "", "mock", "data.json");
+var dataJsonPath = Path.Combine(app.Environment.WebRootPath ?? "", "mock", "SQLITE_data.json");
 if (!File.Exists(dataJsonPath))
-    dataJsonPath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "..", "frontend", "mock", "data.json"));
+    dataJsonPath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "frontend", "mock", "SQLITE_data.json"));
 
 await Seeder.SeedMockData(connectionString, dataJsonPath);
 await Seeder.EmbedSchemaAtStartup(schemaChunks, embeddingClient, connectionString);
 
+app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapControllers();

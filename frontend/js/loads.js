@@ -1,4 +1,5 @@
 const STATUS_ORDER = ['pending', 'complete', 'invoiced', 'paid'];
+const ALL_STATUSES = ['pending', 'complete', 'invoiced', 'paid', 'cancelled'];
 
 export async function renderLoads(container, mode) {
   container.innerHTML = `
@@ -78,15 +79,16 @@ async function loadTable(driverId, mode) {
 
 function openDetailModal(load, mode) {
   const modal = document.getElementById('modal');
-  const canAdvance = mode === 'manager' && STATUS_ORDER.indexOf(load.status) < STATUS_ORDER.length - 1;
-  const nextStatus = canAdvance ? STATUS_ORDER[STATUS_ORDER.indexOf(load.status) + 1] : null;
+  const isCancelled = load.status === 'cancelled';
+  const canAdvance  = mode === 'manager' && !isCancelled && STATUS_ORDER.indexOf(load.status) < STATUS_ORDER.length - 1;
+  const nextStatus  = canAdvance ? STATUS_ORDER[STATUS_ORDER.indexOf(load.status) + 1] : null;
 
   modal.innerHTML = `
     <div class="modal-header">
       <h3>Load ${load.load_number}</h3>
       <button class="modal-close" id="modal-close">&times;</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body ${isCancelled ? 'load-cancelled' : ''}">
       <div class="detail-grid">
         <div class="detail-section">
           <h4>Load Info</h4>
@@ -113,31 +115,51 @@ function openDetailModal(load, mode) {
           <div class="detail-row"><span>Address</span><span>${load.consignee_address}</span></div>
         </div>
       </div>
-      ${canAdvance ? `
+      ${mode === 'manager' && !isCancelled ? `
         <div class="modal-actions">
-          <button class="btn-primary" id="btn-advance-status">
-            Mark as ${nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}
-          </button>
+          ${canAdvance ? `<button class="btn-primary" id="btn-advance-status">Mark as ${nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}</button>` : ''}
+          <div class="status-jump">
+            <label>Jump to:</label>
+            <select id="select-status">
+              <option value="">— change status —</option>
+              ${ALL_STATUSES.filter(s => s !== load.status && s !== 'cancelled').map(s =>
+                `<option value="${s}">${s.charAt(0).toUpperCase() + s.slice(1)}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <button class="btn-danger" id="btn-cancel-load">Cancel Load</button>
         </div>
       ` : ''}
     </div>
   `;
 
   if (canAdvance) {
-    document.getElementById('btn-advance-status').addEventListener('click', async () => {
-      await fetch(`/api/loads/${load.load_id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus }),
-      });
-      closeModal();
-      const driverId = mode === 'trucker' ? 1 : null;
-      await loadTable(driverId, mode);
+    document.getElementById('btn-advance-status').addEventListener('click', () => updateStatus(load.load_id, nextStatus, mode));
+  }
+
+  if (mode === 'manager' && !isCancelled) {
+    document.getElementById('select-status').addEventListener('change', e => {
+      if (e.target.value) updateStatus(load.load_id, e.target.value, mode);
+    });
+
+    document.getElementById('btn-cancel-load').addEventListener('click', () => {
+      if (confirm(`Cancel load ${load.load_number}? It will be kept for records.`))
+        updateStatus(load.load_id, 'cancelled', mode);
     });
   }
 
   document.getElementById('modal-close').addEventListener('click', closeModal);
   showModal();
+}
+
+async function updateStatus(loadId, status, mode) {
+  await fetch(`/api/loads/${loadId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  closeModal();
+  await loadTable(mode === 'trucker' ? 1 : null, mode);
 }
 
 async function openNewLoadModal() {
