@@ -2,11 +2,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-COPY backend/TruckingApi/TruckingApi.csproj backend/TruckingApi/
-RUN dotnet restore backend/TruckingApi/TruckingApi.csproj
+COPY backend/TruckingApi.csproj backend/
+RUN dotnet restore backend/TruckingApi.csproj
 
 COPY backend/ backend/
-RUN dotnet publish backend/TruckingApi/TruckingApi.csproj -c Release -o /app/publish
+RUN dotnet publish backend/TruckingApi.csproj -c Release -o /app/publish
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
