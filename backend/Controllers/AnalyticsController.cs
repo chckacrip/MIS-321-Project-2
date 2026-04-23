@@ -22,9 +22,18 @@ public class AnalyticsController : ControllerBase
 
         string labelExpr = groupBy switch
         {
-            "driver" => "d.first_name || ' ' || d.last_name",
-            "route"  => "l.origin || ' → ' || l.destination",
-            "month"  => "strftime('%Y-%m', l.ship_date)",
+            "driver" => "CONCAT(d.first_name, ' ', d.last_name)",
+            "route"  => "CONCAT(l.origin, ' → ', l.destination)",
+            "month"  => "DATE_FORMAT(l.ship_date, '%Y-%m')",
+            "status" => "l.status",
+            _        => ""
+        };
+
+        string groupByExpr = groupBy switch
+        {
+            "driver" => "d.driver_id",
+            "route"  => "l.origin, l.destination",
+            "month"  => "DATE_FORMAT(l.ship_date, '%Y-%m')",
             "status" => "l.status",
             _        => ""
         };
@@ -38,9 +47,17 @@ public class AnalyticsController : ControllerBase
 
             var fuelLabel = groupBy switch
             {
-                "driver" => "d.first_name || ' ' || d.last_name",
-                "route"  => "l.origin || ' → ' || l.destination",
-                "month"  => "strftime('%Y-%m', da.advance_date)",
+                "driver" => "CONCAT(d.first_name, ' ', d.last_name)",
+                "route"  => "CONCAT(l.origin, ' → ', l.destination)",
+                "month"  => "DATE_FORMAT(da.advance_date, '%Y-%m')",
+                _        => ""
+            };
+
+            var fuelGroupBy = groupBy switch
+            {
+                "driver" => "d.driver_id",
+                "route"  => "l.origin, l.destination",
+                "month"  => "DATE_FORMAT(da.advance_date, '%Y-%m')",
                 _        => ""
             };
 
@@ -57,7 +74,7 @@ public class AnalyticsController : ControllerBase
                 FROM driver_advances da
                 {fuelJoin}
                 {fuelWhere}
-                GROUP BY label
+                GROUP BY {fuelGroupBy}
                 ORDER BY value DESC
             """;
         }
@@ -75,7 +92,7 @@ public class AnalyticsController : ControllerBase
                 sql = $"""
                     SELECT l.status AS label, {valueExpr} AS value
                     FROM loads l
-                    GROUP BY label
+                    GROUP BY l.status
                     ORDER BY value DESC
                 """;
             }
@@ -84,9 +101,8 @@ public class AnalyticsController : ControllerBase
                 sql = $"""
                     SELECT {labelExpr} AS label, {valueExpr} AS value
                     FROM loads l
-                    JOIN load_drivers ld ON l.load_id = ld.load_id
-                    JOIN drivers d ON ld.driver_id = d.driver_id
-                    GROUP BY label
+                    JOIN drivers d ON l.driver_id = d.driver_id
+                    GROUP BY {groupByExpr}
                     ORDER BY value DESC
                     LIMIT 10
                 """;

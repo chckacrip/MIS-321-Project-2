@@ -1,11 +1,20 @@
-﻿import { exportInvoicePdf } from './pdfExport.js';
+import { exportInvoicePdf } from './pdfExport.js';
+import { downloadCSV } from './app.js';
+
 const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
+let _allInvoices = [];
+let _selecting   = false;
+
 export async function renderInvoices(container, mode) {
+  _selecting = false;
   container.innerHTML = `
     <div class="page">
       <div class="page-header">
         <h2>Invoices</h2>
+        <div class="header-actions">
+          <button class="btn-secondary" id="btn-export-csv">Export CSV</button>
+        </div>
       </div>
       <div class="filter-bar">
         <input class="filter-input" type="text" id="invoices-search" placeholder="Search invoice #, load #, bill to…" />
@@ -14,6 +23,15 @@ export async function renderInvoices(container, mode) {
           <option value="unpaid">Unpaid</option>
           <option value="paid">Paid</option>
         </select>
+      </div>
+      <div id="invoices-selection-bar" class="selection-bar hidden">
+        <label class="select-all-wrap">
+          <input type="checkbox" id="invoices-select-all" />
+          <span>Select All</span>
+        </label>
+        <span id="invoices-select-count" class="select-count">0 selected</span>
+        <button class="btn-primary" id="invoices-btn-download">Download CSV</button>
+        <button class="btn-secondary" id="invoices-btn-cancel-select">Cancel</button>
       </div>
       <div id="invoices-table-wrap"></div>
     </div>
@@ -35,13 +53,57 @@ export async function renderInvoices(container, mode) {
   });
 }
 
-let _allInvoices = [];
-
 async function loadTable() {
+  _selecting = false;
+  const bar    = document.getElementById('invoices-selection-bar');
+  const csvBtn = document.getElementById('btn-export-csv');
+  if (bar)    bar.classList.add('hidden');
+  if (csvBtn) csvBtn.classList.remove('hidden');
+
   _allInvoices = await fetch('/api/invoices').then(r => r.json());
 
   document.getElementById('invoices-search').addEventListener('input', renderTable);
   document.getElementById('invoices-status-filter').addEventListener('change', renderTable);
+
+  if (csvBtn) {
+    csvBtn.onclick = () => {
+      _selecting = true;
+      bar.classList.remove('hidden');
+      csvBtn.classList.add('hidden');
+      renderTable();
+
+      document.getElementById('invoices-select-all').onclick = e => {
+        document.querySelectorAll('#invoices-table-wrap .row-check')
+          .forEach(cb => cb.checked = e.target.checked);
+        updateSelectCount('invoices');
+      };
+
+      document.getElementById('invoices-btn-cancel-select').onclick = () => {
+        _selecting = false;
+        bar.classList.add('hidden');
+        csvBtn.classList.remove('hidden');
+        renderTable();
+      };
+
+      document.getElementById('invoices-btn-download').onclick = () => {
+        const ids  = [...document.querySelectorAll('#invoices-table-wrap .row-check:checked')]
+          .map(cb => Number(cb.dataset.id));
+        const rows = _allInvoices.filter(i => ids.includes(i.invoice_id));
+        if (!rows.length) return;
+        downloadCSV(
+          [
+            ['Invoice #', 'Load #', 'Bill To', 'Origin', 'Destination', 'Total', 'Invoice Date', 'Due Date', 'Status'],
+            ...rows.map(i => [
+              i.invoice_number, i.load_number, i.bill_to_name, i.origin, i.destination,
+              (Number(i.line_haul_rate) + Number(i.fsc_rate)).toFixed(2),
+              i.invoice_date, i.due_date, i.payment_status,
+            ]),
+          ],
+          'invoices.csv'
+        );
+      };
+    };
+  }
 
   renderTable();
 }
@@ -64,6 +126,7 @@ function renderTable() {
 
   if (!filtered.length) {
     wrap.innerHTML = '<p class="empty-state">No invoices match your filters.</p>';
+    if (_selecting) updateSelectCount('invoices');
     return;
   }
 
@@ -71,6 +134,7 @@ function renderTable() {
     <table class="data-table">
       <thead>
         <tr>
+          ${_selecting ? '<th class="col-check"></th>' : ''}
           <th>Invoice #</th>
           <th>Load #</th>
           <th>Bill To</th>
@@ -84,11 +148,12 @@ function renderTable() {
       <tbody>
         ${filtered.map(i => `
           <tr class="clickable-row" data-id="${i.invoice_id}">
+            ${_selecting ? `<td class="col-check"><input type="checkbox" class="row-check" data-id="${i.invoice_id}" /></td>` : ''}
             <td class="mono">${i.invoice_number}</td>
             <td class="mono">${i.load_number}</td>
             <td>${i.bill_to_name}</td>
             <td>${i.origin} → ${i.destination}</td>
-            <td>${fmt(Number(i.line_haul_rate) + Number(i.fsc_rate))}</td>
+            <td>${fmt(Number(i.line_haul_rate) + Number(i.fsc_rate) + Number(i.tarp_rate) + Number(i.extra_fee))}</td>
             <td>${i.invoice_date}</td>
             <td>${i.due_date}</td>
             <td><span class="status-badge status-${i.payment_status}">${i.payment_status}</span></td>
@@ -98,14 +163,44 @@ function renderTable() {
     </table>
   `;
 
-  wrap.querySelectorAll('.clickable-row').forEach(row => {
-    row.addEventListener('click', () => openDetailModal(row.dataset.id));
-  });
+  if (_selecting) {
+    const sa = document.getElementById('invoices-select-all');
+    if (sa) sa.checked = false;
+    updateSelectCount('invoices');
+
+    wrap.querySelectorAll('.row-check').forEach(cb => {
+      cb.addEventListener('change', () => updateSelectCount('invoices'));
+    });
+
+    wrap.querySelectorAll('.clickable-row').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.type === 'checkbox') return;
+        const cb = row.querySelector('.row-check');
+        if (cb) { cb.checked = !cb.checked; updateSelectCount('invoices'); }
+      });
+    });
+  } else {
+    wrap.querySelectorAll('.clickable-row').forEach(row => {
+      row.addEventListener('click', () => openDetailModal(row.dataset.id));
+    });
+  }
+}
+
+function updateSelectCount(prefix) {
+  const checked = document.querySelectorAll(`#${prefix}-table-wrap .row-check:checked`).length;
+  const total   = document.querySelectorAll(`#${prefix}-table-wrap .row-check`).length;
+  const el = document.getElementById(`${prefix}-select-count`);
+  if (el) el.textContent = `${checked} of ${total} selected`;
+  const sa = document.getElementById(`${prefix}-select-all`);
+  if (sa) {
+    sa.checked = checked === total && total > 0;
+    sa.indeterminate = checked > 0 && checked < total;
+  }
 }
 
 async function openDetailModal(invoiceId) {
   const inv = await fetch(`/api/invoices/${invoiceId}`).then(r => r.json());
-  const total = Number(inv.line_haul_rate) + Number(inv.fsc_rate);
+  const total = Number(inv.line_haul_rate) + Number(inv.fsc_rate) + Number(inv.tarp_rate) + Number(inv.extra_fee);
 
   const modal = document.getElementById('modal');
   modal.innerHTML = `
@@ -138,6 +233,8 @@ async function openDetailModal(invoiceId) {
           <h4>Charges</h4>
           <div class="detail-row"><span>Line Haul</span><span>${fmt(inv.line_haul_rate)}</span></div>
           <div class="detail-row"><span>FSC</span><span>${Number(inv.fsc_rate) > 0 ? fmt(inv.fsc_rate) : '—'}</span></div>
+          <div class="detail-row"><span>Tarp</span><span>${Number(inv.tarp_rate) > 0 ? fmt(inv.tarp_rate) : '—'}</span></div>
+          <div class="detail-row"><span>Extra Fee</span><span>${Number(inv.extra_fee) > 0 ? fmt(inv.extra_fee) : '—'}</span></div>
           <div class="detail-row"><span>Total</span><strong>${fmt(total)}</strong></div>
         </div>
         <div class="detail-section">

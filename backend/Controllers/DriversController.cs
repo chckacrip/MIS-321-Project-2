@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using MySqlConnector;
 
 namespace TruckingApi.Controllers;
 
@@ -14,7 +15,7 @@ public class DriversController : ControllerBase
     public async Task<IActionResult> GetDrivers()
     {
         var sql = """
-            SELECT driver_id, first_name || ' ' || last_name AS name, unit_number
+            SELECT driver_id, CONCAT(first_name, ' ', last_name) AS name, unit_number
             FROM drivers
             ORDER BY first_name
         """;
@@ -30,7 +31,7 @@ public class DriversController : ControllerBase
             WHERE driver_id = @id
         """;
 
-        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection(_conn);
+        await using var conn = new MySqlConnection(_conn);
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;

@@ -1,12 +1,21 @@
-﻿const STATUS_ORDER = ['pending', 'complete', 'invoiced', 'paid'];
+import { downloadCSV, getUser } from './app.js';
+
+const STATUS_ORDER = ['pending', 'complete', 'invoiced', 'paid'];
 const ALL_STATUSES = ['pending', 'complete', 'invoiced', 'paid', 'cancelled'];
 
+let _allLoads  = [];
+let _selecting = false;
+
 export async function renderLoads(container, mode) {
+  _selecting = false;
   container.innerHTML = `
     <div class="page">
       <div class="page-header">
         <h2>${mode === 'trucker' ? 'My Loads' : 'Loads'}</h2>
-        ${mode === 'manager' ? '<button class="btn-primary" id="btn-new-load">+ New Load</button>' : ''}
+        <div class="header-actions">
+          <button class="btn-secondary" id="btn-export-csv">Export CSV</button>
+          ${mode === 'employee' ? '<button class="btn-primary" id="btn-new-load">+ New Load</button>' : ''}
+        </div>
       </div>
       <div class="filter-bar">
         <input class="filter-input" type="text" id="loads-search" placeholder="Search load #, route, description..." />
@@ -14,10 +23,19 @@ export async function renderLoads(container, mode) {
           <option value="">All Statuses</option>
           ${ALL_STATUSES.map(s => `<option value="${s}">${cap(s)}</option>`).join('')}
         </select>
-        ${mode === 'manager' ? `
+        ${mode === 'employee' ? `
         <select class="filter-select" id="loads-driver-filter">
           <option value="">All Drivers</option>
         </select>` : ''}
+      </div>
+      <div id="loads-selection-bar" class="selection-bar hidden">
+        <label class="select-all-wrap">
+          <input type="checkbox" id="loads-select-all" />
+          <span>Select All</span>
+        </label>
+        <span id="loads-select-count" class="select-count">0 selected</span>
+        <button class="btn-primary" id="loads-btn-download">Download CSV</button>
+        <button class="btn-secondary" id="loads-btn-cancel-select">Cancel</button>
       </div>
       <div id="loads-table-wrap"></div>
     </div>
@@ -26,10 +44,10 @@ export async function renderLoads(container, mode) {
     </div>
   `;
 
-  const driverId = mode === 'trucker' ? 1 : null;
+  const driverId = mode === 'trucker' ? getUser()?.driverId ?? null : null;
   await loadTable(driverId, mode);
 
-  if (mode === 'manager')
+  if (mode === 'employee')
     document.getElementById('btn-new-load').addEventListener('click', () => openNewLoadModal());
 
   document.getElementById('modal-overlay').addEventListener('click', e => {
@@ -37,13 +55,17 @@ export async function renderLoads(container, mode) {
   });
 }
 
-let _allLoads = [];
-
 async function loadTable(driverId, mode) {
-  const url = driverId ? `/api/loads?driverId=${driverId}` : '/api/loads';
-  _allLoads  = await fetch(url).then(r => r.json());
+  _selecting = false;
+  const bar    = document.getElementById('loads-selection-bar');
+  const csvBtn = document.getElementById('btn-export-csv');
+  if (bar)    bar.classList.add('hidden');
+  if (csvBtn) csvBtn.classList.remove('hidden');
 
-  if (mode === 'manager') {
+  const url = driverId ? `/api/loads?driverId=${driverId}` : '/api/loads';
+  _allLoads = await fetch(url).then(r => r.json());
+
+  if (mode === 'employee') {
     const driverFilter = document.getElementById('loads-driver-filter');
     if (driverFilter) {
       const names = [...new Set(_allLoads.map(l => l.driver).filter(Boolean))].sort();
@@ -55,6 +77,45 @@ async function loadTable(driverId, mode) {
 
   document.getElementById('loads-search').addEventListener('input', () => renderTable(mode));
   document.getElementById('loads-status-filter').addEventListener('change', () => renderTable(mode));
+
+  if (csvBtn) {
+    csvBtn.onclick = () => {
+      _selecting = true;
+      bar.classList.remove('hidden');
+      csvBtn.classList.add('hidden');
+      renderTable(mode);
+
+      document.getElementById('loads-select-all').onclick = e => {
+        document.querySelectorAll('#loads-table-wrap .row-check')
+          .forEach(cb => cb.checked = e.target.checked);
+        updateSelectCount('loads');
+      };
+
+      document.getElementById('loads-btn-cancel-select').onclick = () => {
+        _selecting = false;
+        bar.classList.add('hidden');
+        csvBtn.classList.remove('hidden');
+        renderTable(mode);
+      };
+
+      document.getElementById('loads-btn-download').onclick = () => {
+        const ids  = [...document.querySelectorAll('#loads-table-wrap .row-check:checked')]
+          .map(cb => Number(cb.dataset.id));
+        const rows = _allLoads.filter(l => ids.includes(l.load_id));
+        if (!rows.length) return;
+        downloadCSV(
+          [
+            ['Load #', 'Ship Date', 'Origin', 'Destination', 'Description', 'Driver', 'Line Haul', 'FSC', 'Status'],
+            ...rows.map(l => [
+              l.load_number, l.ship_date, l.origin, l.destination,
+              l.description, l.driver ?? '', l.line_haul_rate, l.fsc_rate, l.status,
+            ]),
+          ],
+          'loads.csv'
+        );
+      };
+    };
+  }
 
   renderTable(mode);
 }
@@ -79,6 +140,7 @@ function renderTable(mode) {
 
   if (!filtered.length) {
     wrap.innerHTML = '<p class="empty-state">No loads match your filters.</p>';
+    if (_selecting) updateSelectCount('loads');
     return;
   }
 
@@ -86,6 +148,7 @@ function renderTable(mode) {
     <table class="data-table">
       <thead>
         <tr>
+          ${_selecting ? '<th class="col-check"></th>' : ''}
           <th>Load #</th><th>Ship Date</th><th>Route</th><th>Description</th>
           <th>Driver</th><th>Line Haul</th><th>FSC</th><th>Status</th>
         </tr>
@@ -93,6 +156,7 @@ function renderTable(mode) {
       <tbody>
         ${filtered.map(l => `
           <tr class="clickable-row ${l.status === 'cancelled' ? 'row-cancelled' : ''}" data-id="${l.load_id}">
+            ${_selecting ? `<td class="col-check"><input type="checkbox" class="row-check" data-id="${l.load_id}" /></td>` : ''}
             <td class="mono">${l.load_number}</td>
             <td>${l.ship_date}</td>
             <td class="route-cell">${l.origin} → ${l.destination}</td>
@@ -107,18 +171,48 @@ function renderTable(mode) {
     </table>
   `;
 
-  wrap.querySelectorAll('.clickable-row').forEach(row => {
-    row.addEventListener('click', () => {
-      const load = _allLoads.find(l => l.load_id == row.dataset.id);
-      openDetailModal(load, mode);
+  if (_selecting) {
+    const sa = document.getElementById('loads-select-all');
+    if (sa) sa.checked = false;
+    updateSelectCount('loads');
+
+    wrap.querySelectorAll('.row-check').forEach(cb => {
+      cb.addEventListener('change', () => updateSelectCount('loads'));
     });
-  });
+
+    wrap.querySelectorAll('.clickable-row').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.type === 'checkbox') return;
+        const cb = row.querySelector('.row-check');
+        if (cb) { cb.checked = !cb.checked; updateSelectCount('loads'); }
+      });
+    });
+  } else {
+    wrap.querySelectorAll('.clickable-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const load = _allLoads.find(l => l.load_id == row.dataset.id);
+        openDetailModal(load, mode);
+      });
+    });
+  }
+}
+
+function updateSelectCount(prefix) {
+  const checked = document.querySelectorAll(`#${prefix}-table-wrap .row-check:checked`).length;
+  const total   = document.querySelectorAll(`#${prefix}-table-wrap .row-check`).length;
+  const el = document.getElementById(`${prefix}-select-count`);
+  if (el) el.textContent = `${checked} of ${total} selected`;
+  const sa = document.getElementById(`${prefix}-select-all`);
+  if (sa) {
+    sa.checked = checked === total && total > 0;
+    sa.indeterminate = checked > 0 && checked < total;
+  }
 }
 
 function openDetailModal(load, mode) {
   const modal       = document.getElementById('modal');
   const isCancelled = load.status === 'cancelled';
-  const canAdvance  = mode === 'manager' && !isCancelled && STATUS_ORDER.indexOf(load.status) < STATUS_ORDER.length - 1;
+  const canAdvance  = mode === 'employee' && !isCancelled && STATUS_ORDER.indexOf(load.status) < STATUS_ORDER.length - 1;
   const nextStatus  = canAdvance ? STATUS_ORDER[STATUS_ORDER.indexOf(load.status) + 1] : null;
 
   modal.innerHTML = `
@@ -139,8 +233,10 @@ function openDetailModal(load, mode) {
         <div class="detail-section">
           <h4>Rate</h4>
           <div class="detail-row"><span>Line Haul</span><span>$${Number(load.line_haul_rate).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
-          <div class="detail-row"><span>FSC</span><span>${load.fsc_rate > 0 ? '$' + Number(load.fsc_rate).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}</span></div>
-          <div class="detail-row"><span>Total</span><strong>$${(Number(load.line_haul_rate) + Number(load.fsc_rate)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></div>
+          <div class="detail-row"><span>FSC</span><span>${Number(load.fsc_rate) > 0 ? '$' + Number(load.fsc_rate).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}</span></div>
+          <div class="detail-row"><span>Tarp</span><span>${Number(load.tarp_rate) > 0 ? '$' + Number(load.tarp_rate).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}</span></div>
+          <div class="detail-row"><span>Extra Fee</span><span>${Number(load.extra_fee) > 0 ? '$' + Number(load.extra_fee).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}</span></div>
+          <div class="detail-row"><span>Total</span><strong>$${(Number(load.line_haul_rate) + Number(load.fsc_rate) + Number(load.tarp_rate) + Number(load.extra_fee)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></div>
         </div>
         <div class="detail-section">
           <h4>Bill To</h4>
@@ -154,7 +250,7 @@ function openDetailModal(load, mode) {
         </div>
       </div>
 
-      ${!isCancelled && mode === 'manager' ? `
+      ${!isCancelled && mode === 'employee' ? `
         <div class="modal-actions">
           ${canAdvance ? `<button class="btn-primary" id="btn-advance-status">Mark as ${cap(nextStatus)}</button>` : ''}
           <div class="status-menu-wrap">
@@ -194,7 +290,7 @@ function openDetailModal(load, mode) {
     });
   }
 
-  if (!isCancelled && mode === 'manager') {
+  if (!isCancelled && mode === 'employee') {
     const menuBtn = document.getElementById('btn-status-menu');
     const menu    = document.getElementById('status-menu');
 
@@ -246,7 +342,7 @@ async function updateStatus(loadId, status, mode, load) {
     body: JSON.stringify({ status }),
   });
   closeModal();
-  await loadTable(mode === 'trucker' ? 1 : null, mode);
+  await loadTable(mode === 'trucker' ? getUser()?.driverId ?? null : null, mode);
 }
 
 async function generateInvoiceFromLoad(load) {
@@ -333,6 +429,14 @@ function loadFormFields(drivers, load = null) {
         <input name="fscRate" type="number" step="0.01" placeholder="0.00" value="${load?.fsc_rate ?? 0}" />
       </div>
       <div class="form-group">
+        <label>Tarp</label>
+        <input name="tarpRate" type="number" step="0.01" placeholder="0.00" value="${load?.tarp_rate ?? 0}" />
+      </div>
+      <div class="form-group">
+        <label>Extra Fee</label>
+        <input name="extraFee" type="number" step="0.01" placeholder="0.00" value="${load?.extra_fee ?? 0}" />
+      </div>
+      <div class="form-group">
         <label>Terms</label>
         <input name="terms" value="${load?.terms ?? 'Net 30'}" />
       </div>
@@ -364,7 +468,9 @@ function formToBody(f) {
     destination:      f.destination.value,
     description:      f.description.value,
     lineHaulRate:     parseFloat(f.lineHaulRate.value),
-    fscRate:          parseFloat(f.fscRate.value) || 0,
+    fscRate:          parseFloat(f.fscRate.value)   || 0,
+    tarpRate:         parseFloat(f.tarpRate.value)  || 0,
+    extraFee:         parseFloat(f.extraFee.value)  || 0,
     terms:            f.terms.value,
     status:           'pending',
     billToName:       f.billToName.value,
@@ -406,7 +512,7 @@ async function openNewLoadModal() {
       body: JSON.stringify(formToBody(e.target)),
     });
     closeModal();
-    await loadTable(null, 'manager');
+    await loadTable(null, mode);
   });
 
   showModal();
@@ -446,7 +552,7 @@ async function openEditLoadModal(load, mode) {
       body: JSON.stringify(body),
     });
     closeModal();
-    await loadTable(mode === 'trucker' ? 1 : null, mode);
+    await loadTable(mode === 'trucker' ? getUser()?.driverId ?? null : null, mode);
   });
 
   showModal();

@@ -5,7 +5,7 @@ export function exportInvoicePdf(inv) {
   const lm   = 15;   // left margin
   const rm   = 200;  // right content edge
   const fmt  = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 });
-  const total = Number(inv.line_haul_rate) + Number(inv.fsc_rate);
+  const total = Number(inv.line_haul_rate) + Number(inv.fsc_rate) + Number(inv.tarp_rate) + Number(inv.extra_fee);
 
   // ── Company header ──────────────────────────────────────────
   doc.setFontSize(9);
@@ -106,6 +106,22 @@ export function exportInvoicePdf(inv) {
     doc.text('Fuel Surcharge (FSC)',           lm + 2,     rowY);
     doc.text(fmt(inv.fsc_rate), (dc[2] + dc[3]) / 2,      rowY, { align: 'center' });
     doc.text(fmt(inv.fsc_rate),                rm - 2,     rowY, { align: 'right' });
+    rowY += 6;
+  }
+
+  // Tarp row (if applicable)
+  if (Number(inv.tarp_rate) > 0) {
+    doc.text('Tarp',                           lm + 2,     rowY);
+    doc.text(fmt(inv.tarp_rate), (dc[2] + dc[3]) / 2,     rowY, { align: 'center' });
+    doc.text(fmt(inv.tarp_rate),               rm - 2,     rowY, { align: 'right' });
+    rowY += 6;
+  }
+
+  // Extra fee row (if applicable)
+  if (Number(inv.extra_fee) > 0) {
+    doc.text('Extra Fee',                      lm + 2,     rowY);
+    doc.text(fmt(inv.extra_fee), (dc[2] + dc[3]) / 2,     rowY, { align: 'center' });
+    doc.text(fmt(inv.extra_fee),               rm - 2,     rowY, { align: 'right' });
   }
 
   // ── Footer ──────────────────────────────────────────────────

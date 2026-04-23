@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.Sqlite;
+using MySqlConnector;
 
 namespace TruckingApi.Controllers;
 
@@ -16,9 +16,10 @@ public class DriverPayController : ControllerBase
     {
         var where = driverId.HasValue ? "WHERE s.driver_id = @driverId" : "";
         var sql = $"""
-            SELECT s.summary_id, s.driver_id, d.first_name || ' ' || d.last_name AS driver_name,
+            SELECT s.summary_id, s.driver_id, CONCAT(d.first_name, ' ', d.last_name) AS driver_name,
                    d.unit_number, s.pay_period_start, s.pay_period_end,
                    s.total_line_haul, s.commission_rate, s.total_fsc,
+                   s.total_tarp, s.total_extra_fee,
                    s.total_advances, s.insurance_deduction, s.workers_comp_deduction, s.net_pay,
                    s.created_at
             FROM driver_pay_summaries s
@@ -27,7 +28,7 @@ public class DriverPayController : ControllerBase
             ORDER BY s.pay_period_end DESC
         """;
 
-        await using var conn = new SqliteConnection(_conn);
+        await using var conn = new MySqlConnection(_conn);
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -48,12 +49,12 @@ public class DriverPayController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetSummary(int id)
     {
-        await using var conn = new SqliteConnection(_conn);
+        await using var conn = new MySqlConnection(_conn);
         await conn.OpenAsync();
 
         await using var sumCmd = conn.CreateCommand();
         sumCmd.CommandText = """
-            SELECT s.*, d.first_name || ' ' || d.last_name AS driver_name,
+            SELECT s.*, CONCAT(d.first_name, ' ', d.last_name) AS driver_name,
                    d.unit_number, d.address
             FROM driver_pay_summaries s
             JOIN drivers d ON s.driver_id = d.driver_id
@@ -71,17 +72,16 @@ public class DriverPayController : ControllerBase
         await using var loadsCmd = conn.CreateCommand();
         loadsCmd.CommandText = """
             SELECT l.load_id, l.load_number, l.ship_date,
-                   l.origin || ' → ' || l.destination AS route,
-                   l.line_haul_rate, l.fsc_rate
+                   CONCAT(l.origin, ' → ', l.destination) AS route,
+                   l.line_haul_rate, l.fsc_rate, l.tarp_rate, l.extra_fee
             FROM loads l
-            JOIN load_drivers ld ON l.load_id = ld.load_id
-            WHERE ld.driver_id = @driverId
+            WHERE l.driver_id = @driverId
               AND l.ship_date BETWEEN @start AND @end
             ORDER BY l.ship_date
         """;
         loadsCmd.Parameters.AddWithValue("@driverId", summary["driver_id"]);
-        loadsCmd.Parameters.AddWithValue("@start", summary["pay_period_start"]);
-        loadsCmd.Parameters.AddWithValue("@end", summary["pay_period_end"]);
+        loadsCmd.Parameters.AddWithValue("@start",    summary["pay_period_start"]);
+        loadsCmd.Parameters.AddWithValue("@end",      summary["pay_period_end"]);
         await using var loadsReader = await loadsCmd.ExecuteReaderAsync();
 
         var loads = new List<Dictionary<string, object?>>();
@@ -103,8 +103,8 @@ public class DriverPayController : ControllerBase
             ORDER BY advance_date
         """;
         advCmd.Parameters.AddWithValue("@driverId", summary["driver_id"]);
-        advCmd.Parameters.AddWithValue("@start", summary["pay_period_start"]);
-        advCmd.Parameters.AddWithValue("@end", summary["pay_period_end"]);
+        advCmd.Parameters.AddWithValue("@start",    summary["pay_period_start"]);
+        advCmd.Parameters.AddWithValue("@end",      summary["pay_period_end"]);
         await using var advReader = await advCmd.ExecuteReaderAsync();
 
         var advances = new List<Dictionary<string, object?>>();
@@ -122,7 +122,7 @@ public class DriverPayController : ControllerBase
     [HttpPost("generate")]
     public async Task<IActionResult> Generate([FromBody] GeneratePayRequest body)
     {
-        await using var conn = new SqliteConnection(_conn);
+        await using var conn = new MySqlConnection(_conn);
         await conn.OpenAsync();
 
         await using var driverCmd = conn.CreateCommand();
@@ -132,19 +132,21 @@ public class DriverPayController : ControllerBase
 
         await using var loadsCmd = conn.CreateCommand();
         loadsCmd.CommandText = """
-            SELECT COALESCE(SUM(l.line_haul_rate), 0), COALESCE(SUM(l.fsc_rate), 0)
+            SELECT COALESCE(SUM(l.line_haul_rate), 0), COALESCE(SUM(l.fsc_rate), 0),
+                   COALESCE(SUM(l.tarp_rate), 0), COALESCE(SUM(l.extra_fee), 0)
             FROM loads l
-            JOIN load_drivers ld ON l.load_id = ld.load_id
-            WHERE ld.driver_id = @driverId
+            WHERE l.driver_id = @driverId
               AND l.ship_date BETWEEN @start AND @end
         """;
         loadsCmd.Parameters.AddWithValue("@driverId", body.DriverId);
-        loadsCmd.Parameters.AddWithValue("@start", body.PayPeriodStart);
-        loadsCmd.Parameters.AddWithValue("@end", body.PayPeriodEnd);
+        loadsCmd.Parameters.AddWithValue("@start",    body.PayPeriodStart);
+        loadsCmd.Parameters.AddWithValue("@end",      body.PayPeriodEnd);
         await using var loadsReader = await loadsCmd.ExecuteReaderAsync();
         await loadsReader.ReadAsync();
         var totalLineHaul = loadsReader.GetDecimal(0);
-        var totalFsc = loadsReader.GetDecimal(1);
+        var totalFsc      = loadsReader.GetDecimal(1);
+        var totalTarp     = loadsReader.GetDecimal(2);
+        var totalExtraFee = loadsReader.GetDecimal(3);
         await loadsReader.CloseAsync();
 
         await using var advCmd = conn.CreateCommand();
@@ -156,20 +158,20 @@ public class DriverPayController : ControllerBase
               AND advance_type NOT IN ('Insurance', 'WorkersComp')
         """;
         advCmd.Parameters.AddWithValue("@driverId", body.DriverId);
-        advCmd.Parameters.AddWithValue("@start", body.PayPeriodStart);
-        advCmd.Parameters.AddWithValue("@end", body.PayPeriodEnd);
+        advCmd.Parameters.AddWithValue("@start",    body.PayPeriodStart);
+        advCmd.Parameters.AddWithValue("@end",      body.PayPeriodEnd);
         var totalAdvances = Convert.ToDecimal(await advCmd.ExecuteScalarAsync());
 
-        var grossPay = (totalLineHaul * (1 - commissionRate)) + totalFsc;
+        var grossPay = (totalLineHaul * (1 - commissionRate)) + totalFsc + totalTarp + totalExtraFee;
         var netPay = grossPay - totalAdvances - body.InsuranceDeduction - body.WorkersCompDeduction;
 
         await using var insertCmd = conn.CreateCommand();
         insertCmd.CommandText = """
             INSERT INTO driver_pay_summaries
                 (driver_id, pay_period_start, pay_period_end, total_line_haul, commission_rate,
-                 total_fsc, total_advances, insurance_deduction, workers_comp_deduction, net_pay)
-            VALUES (@driverId, @start, @end, @lh, @rate, @fsc, @adv, @ins, @wc, @net);
-            SELECT last_insert_rowid();
+                 total_fsc, total_tarp, total_extra_fee,
+                 total_advances, insurance_deduction, workers_comp_deduction, net_pay)
+            VALUES (@driverId, @start, @end, @lh, @rate, @fsc, @tarp, @extra, @adv, @ins, @wc, @net)
         """;
         insertCmd.Parameters.AddWithValue("@driverId", body.DriverId);
         insertCmd.Parameters.AddWithValue("@start",    body.PayPeriodStart);
@@ -177,12 +179,16 @@ public class DriverPayController : ControllerBase
         insertCmd.Parameters.AddWithValue("@lh",       totalLineHaul);
         insertCmd.Parameters.AddWithValue("@rate",     commissionRate);
         insertCmd.Parameters.AddWithValue("@fsc",      totalFsc);
+        insertCmd.Parameters.AddWithValue("@tarp",     totalTarp);
+        insertCmd.Parameters.AddWithValue("@extra",    totalExtraFee);
         insertCmd.Parameters.AddWithValue("@adv",      totalAdvances);
         insertCmd.Parameters.AddWithValue("@ins",      body.InsuranceDeduction);
         insertCmd.Parameters.AddWithValue("@wc",       body.WorkersCompDeduction);
         insertCmd.Parameters.AddWithValue("@net",      netPay);
 
-        var newId = Convert.ToInt32(await insertCmd.ExecuteScalarAsync());
+        await insertCmd.ExecuteNonQueryAsync();
+        var newId = (int)insertCmd.LastInsertedId;
+
         return Ok(new { summary_id = newId, net_pay = netPay });
     }
 }

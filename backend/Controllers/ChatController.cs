@@ -157,6 +157,13 @@ public class ChatController : ControllerBase
         }
     }
 
+    [HttpPost("reset")]
+    public IActionResult Reset()
+    {
+        _conversationHistory.Clear();
+        return Ok();
+    }
+
     private static float CosineSimilarity(float[] a, float[] b)
     {
         float dot = 0f, magA = 0f, magB = 0f;

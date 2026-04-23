@@ -1,19 +1,37 @@
-﻿const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 });
+import { downloadCSV, getUser } from './app.js';
+
+const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+let _allSummaries = [];
+let _selecting    = false;
 
 export async function renderDriverPay(container, mode) {
+  _selecting = false;
   container.innerHTML = `
     <div class="page">
       <div class="page-header">
         <h2>${mode === 'trucker' ? 'My Pay' : 'Driver Pay'}</h2>
-        ${mode === 'manager' ? '<button class="btn-primary" id="btn-generate">+ Generate Pay Summary</button>' : ''}
+        <div class="header-actions">
+          <button class="btn-secondary" id="btn-export-csv">Export CSV</button>
+          ${mode === 'employee' ? '<button class="btn-primary" id="btn-generate">+ Generate Pay Summary</button>' : ''}
+        </div>
       </div>
-      ${mode === 'manager' ? `
+      ${mode === 'employee' ? `
       <div class="filter-bar">
         <input class="filter-input" type="text" id="pay-search" placeholder="Search driver name…" />
         <select class="filter-select" id="pay-driver-filter">
           <option value="">All Drivers</option>
         </select>
       </div>` : ''}
+      <div id="pay-selection-bar" class="selection-bar hidden">
+        <label class="select-all-wrap">
+          <input type="checkbox" id="pay-select-all" />
+          <span>Select All</span>
+        </label>
+        <span id="pay-select-count" class="select-count">0 selected</span>
+        <button class="btn-primary" id="pay-btn-download">Download CSV</button>
+        <button class="btn-secondary" id="pay-btn-cancel-select">Cancel</button>
+      </div>
       <div id="pay-table-wrap"></div>
     </div>
     <div class="modal-overlay hidden" id="modal-overlay">
@@ -21,10 +39,10 @@ export async function renderDriverPay(container, mode) {
     </div>
   `;
 
-  const driverId = mode === 'trucker' ? 1 : null;
+  const driverId = mode === 'trucker' ? getUser()?.driverId ?? null : null;
   await loadTable(driverId, mode);
 
-  if (mode === 'manager') {
+  if (mode === 'employee') {
     document.getElementById('btn-generate').addEventListener('click', () => openGenerateModal());
   }
 
@@ -33,13 +51,17 @@ export async function renderDriverPay(container, mode) {
   });
 }
 
-let _allSummaries = [];
-
 async function loadTable(driverId, mode) {
-  const url    = driverId ? `/api/driver-pay?driverId=${driverId}` : '/api/driver-pay';
+  _selecting = false;
+  const bar    = document.getElementById('pay-selection-bar');
+  const csvBtn = document.getElementById('btn-export-csv');
+  if (bar)    bar.classList.add('hidden');
+  if (csvBtn) csvBtn.classList.remove('hidden');
+
+  const url = driverId ? `/api/driver-pay?driverId=${driverId}` : '/api/driver-pay';
   _allSummaries = await fetch(url).then(r => r.json());
 
-  if (mode === 'manager') {
+  if (mode === 'employee') {
     const driverFilter = document.getElementById('pay-driver-filter');
     if (driverFilter) {
       const names = [...new Set(_allSummaries.map(s => s.driver_name).filter(Boolean))].sort();
@@ -48,6 +70,51 @@ async function loadTable(driverId, mode) {
       driverFilter.addEventListener('change', () => renderPayTable(mode));
     }
     document.getElementById('pay-search')?.addEventListener('input', () => renderPayTable(mode));
+  }
+
+  if (csvBtn) {
+    csvBtn.onclick = () => {
+      _selecting = true;
+      bar.classList.remove('hidden');
+      csvBtn.classList.add('hidden');
+      renderPayTable(mode);
+
+      document.getElementById('pay-select-all').onclick = e => {
+        document.querySelectorAll('#pay-table-wrap .row-check')
+          .forEach(cb => cb.checked = e.target.checked);
+        updateSelectCount('pay');
+      };
+
+      document.getElementById('pay-btn-cancel-select').onclick = () => {
+        _selecting = false;
+        bar.classList.add('hidden');
+        csvBtn.classList.remove('hidden');
+        renderPayTable(mode);
+      };
+
+      document.getElementById('pay-btn-download').onclick = () => {
+        const ids  = [...document.querySelectorAll('#pay-table-wrap .row-check:checked')]
+          .map(cb => Number(cb.dataset.id));
+        const rows = _allSummaries.filter(s => ids.includes(s.summary_id));
+        if (!rows.length) return;
+        downloadCSV(
+          [
+            ['Driver', 'Unit', 'Pay Period Start', 'Pay Period End', 'Line Haul', 'FSC',
+             'Commission Rate', 'Commission', 'Advances', 'Insurance', 'Workers Comp', 'Net Pay'],
+            ...rows.map(s => {
+              const commission = (Number(s.total_line_haul) * Number(s.commission_rate)).toFixed(2);
+              return [
+                s.driver_name, s.unit_number, s.pay_period_start, s.pay_period_end,
+                s.total_line_haul, s.total_fsc,
+                (Number(s.commission_rate) * 100).toFixed(0) + '%', commission,
+                s.total_advances, s.insurance_deduction, s.workers_comp_deduction, s.net_pay,
+              ];
+            }),
+          ],
+          'driver-pay.csv'
+        );
+      };
+    };
   }
 
   renderPayTable(mode);
@@ -67,6 +134,7 @@ function renderPayTable(mode) {
 
   if (!filtered.length) {
     wrap.innerHTML = '<p class="empty-state">No pay summaries match your filters.</p>';
+    if (_selecting) updateSelectCount('pay');
     return;
   }
 
@@ -74,7 +142,8 @@ function renderPayTable(mode) {
     <table class="data-table">
       <thead>
         <tr>
-          ${mode === 'manager' ? '<th>Driver</th><th>Unit</th>' : ''}
+          ${_selecting ? '<th class="col-check"></th>' : ''}
+          ${mode === 'employee' ? '<th>Driver</th><th>Unit</th>' : ''}
           <th>Pay Period</th>
           <th>Line Haul</th>
           <th>FSC</th>
@@ -88,7 +157,8 @@ function renderPayTable(mode) {
           const commission = Number(s.total_line_haul) * Number(s.commission_rate);
           return `
             <tr class="clickable-row" data-id="${s.summary_id}">
-              ${mode === 'manager' ? `<td>${s.driver_name}</td><td class="mono">${s.unit_number}</td>` : ''}
+              ${_selecting ? `<td class="col-check"><input type="checkbox" class="row-check" data-id="${s.summary_id}" /></td>` : ''}
+              ${mode === 'employee' ? `<td>${s.driver_name}</td><td class="mono">${s.unit_number}</td>` : ''}
               <td>${s.pay_period_start} – ${s.pay_period_end}</td>
               <td>${fmt(s.total_line_haul)}</td>
               <td>${fmt(s.total_fsc)}</td>
@@ -102,16 +172,47 @@ function renderPayTable(mode) {
     </table>
   `;
 
-  wrap.querySelectorAll('.clickable-row').forEach(row => {
-    row.addEventListener('click', () => openDetailModal(row.dataset.id));
-  });
+  if (_selecting) {
+    const sa = document.getElementById('pay-select-all');
+    if (sa) sa.checked = false;
+    updateSelectCount('pay');
+
+    wrap.querySelectorAll('.row-check').forEach(cb => {
+      cb.addEventListener('change', () => updateSelectCount('pay'));
+    });
+
+    wrap.querySelectorAll('.clickable-row').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.type === 'checkbox') return;
+        const cb = row.querySelector('.row-check');
+        if (cb) { cb.checked = !cb.checked; updateSelectCount('pay'); }
+      });
+    });
+  } else {
+    wrap.querySelectorAll('.clickable-row').forEach(row => {
+      row.addEventListener('click', () => openDetailModal(row.dataset.id));
+    });
+  }
+}
+
+function updateSelectCount(prefix) {
+  const checked = document.querySelectorAll(`#${prefix}-table-wrap .row-check:checked`).length;
+  const total   = document.querySelectorAll(`#${prefix}-table-wrap .row-check`).length;
+  const el = document.getElementById(`${prefix}-select-count`);
+  if (el) el.textContent = `${checked} of ${total} selected`;
+  const sa = document.getElementById(`${prefix}-select-all`);
+  if (sa) {
+    sa.checked = checked === total && total > 0;
+    sa.indeterminate = checked > 0 && checked < total;
+  }
 }
 
 async function openDetailModal(summaryId) {
   const { summary, loads, advances } = await fetch(`/api/driver-pay/${summaryId}`).then(r => r.json());
 
   const commission = Number(summary.total_line_haul) * Number(summary.commission_rate);
-  const grossPay   = Number(summary.total_line_haul) - commission + Number(summary.total_fsc);
+  const grossPay   = Number(summary.total_line_haul) - commission + Number(summary.total_fsc)
+                   + Number(summary.total_tarp ?? 0) + Number(summary.total_extra_fee ?? 0);
 
   const modal = document.getElementById('modal');
   modal.innerHTML = `
@@ -133,6 +234,8 @@ async function openDetailModal(summaryId) {
           <div class="detail-row"><span>Total Line Haul</span><span>${fmt(summary.total_line_haul)}</span></div>
           <div class="detail-row"><span>Commission (${(Number(summary.commission_rate)*100).toFixed(0)}%)</span><span class="negative">-${fmt(commission)}</span></div>
           <div class="detail-row"><span>FSC (100%)</span><span>${fmt(summary.total_fsc)}</span></div>
+          ${Number(summary.total_tarp) > 0 ? `<div class="detail-row"><span>Tarp (100%)</span><span>${fmt(summary.total_tarp)}</span></div>` : ''}
+          ${Number(summary.total_extra_fee) > 0 ? `<div class="detail-row"><span>Extra Fee (100%)</span><span>${fmt(summary.total_extra_fee)}</span></div>` : ''}
           <div class="detail-row"><span>Gross Pay</span><strong>${fmt(grossPay)}</strong></div>
           <div class="detail-row"><span>Advances</span><span class="negative">-${fmt(summary.total_advances)}</span></div>
           <div class="detail-row"><span>Insurance</span><span class="negative">-${fmt(summary.insurance_deduction)}</span></div>

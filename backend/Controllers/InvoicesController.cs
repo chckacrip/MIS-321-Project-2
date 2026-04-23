@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.Sqlite;
+using MySqlConnector;
 
 namespace TruckingApi.Controllers;
 
@@ -18,7 +18,7 @@ public class InvoicesController : ControllerBase
             SELECT i.invoice_id, i.invoice_number, i.invoice_date, i.due_date,
                    i.payment_status, i.paid_date,
                    l.load_id, l.load_number, l.origin, l.destination,
-                   l.line_haul_rate, l.fsc_rate, l.terms,
+                   l.line_haul_rate, l.fsc_rate, l.tarp_rate, l.extra_fee, l.terms,
                    l.bill_to_name, l.bill_to_address
             FROM invoices i
             JOIN loads l ON i.load_id = l.load_id
@@ -32,19 +32,17 @@ public class InvoicesController : ControllerBase
     {
         var sql = """
             SELECT i.*, l.load_number, l.ship_date, l.origin, l.destination,
-                   l.description, l.line_haul_rate, l.fsc_rate, l.terms,
+                   l.description, l.line_haul_rate, l.fsc_rate, l.tarp_rate, l.extra_fee, l.terms,
                    l.bill_to_name, l.bill_to_address,
                    l.consignee_name, l.consignee_address,
-                   GROUP_CONCAT(d.unit_number) AS unit_number
+                   d.unit_number
             FROM invoices i
             JOIN loads l ON i.load_id = l.load_id
-            LEFT JOIN load_drivers ld ON l.load_id = ld.load_id
-            LEFT JOIN drivers d ON ld.driver_id = d.driver_id
+            LEFT JOIN drivers d ON l.driver_id = d.driver_id
             WHERE i.invoice_id = @id
-            GROUP BY i.invoice_id
         """;
 
-        await using var conn = new SqliteConnection(_conn);
+        await using var conn = new MySqlConnection(_conn);
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
@@ -63,7 +61,7 @@ public class InvoicesController : ControllerBase
     [HttpPost("generate")]
     public async Task<IActionResult> Generate([FromBody] GenerateInvoiceRequest body)
     {
-        await using var conn = new SqliteConnection(_conn);
+        await using var conn = new MySqlConnection(_conn);
         await conn.OpenAsync();
 
         await using var checkCmd = conn.CreateCommand();
@@ -74,7 +72,7 @@ public class InvoicesController : ControllerBase
             return Conflict(new { error = "Invoice already exists for this load.", invoice_id = Convert.ToInt32(existing) });
 
         await using var numCmd = conn.CreateCommand();
-        numCmd.CommandText = "SELECT COALESCE(MAX(CAST(invoice_number AS INTEGER)), 101630) + 1 FROM invoices";
+        numCmd.CommandText = "SELECT COALESCE(MAX(CAST(invoice_number AS UNSIGNED)), 101630) + 1 FROM invoices";
         var invoiceNumber = (await numCmd.ExecuteScalarAsync())!.ToString();
 
         var invoiceDate = body.InvoiceDate ?? DateTime.Today.ToString("yyyy-MM-dd");
@@ -83,15 +81,15 @@ public class InvoicesController : ControllerBase
         await using var insertCmd = conn.CreateCommand();
         insertCmd.CommandText = """
             INSERT INTO invoices (invoice_number, load_id, invoice_date, due_date, payment_status)
-            VALUES (@num, @loadId, @date, @due, 'unpaid');
-            SELECT last_insert_rowid();
+            VALUES (@num, @loadId, @date, @due, 'unpaid')
         """;
         insertCmd.Parameters.AddWithValue("@num",    invoiceNumber);
         insertCmd.Parameters.AddWithValue("@loadId", body.LoadId);
         insertCmd.Parameters.AddWithValue("@date",   invoiceDate);
         insertCmd.Parameters.AddWithValue("@due",    dueDate);
 
-        var newId = Convert.ToInt32(await insertCmd.ExecuteScalarAsync());
+        await insertCmd.ExecuteNonQueryAsync();
+        var newId = (int)insertCmd.LastInsertedId;
 
         await using var statusCmd = conn.CreateCommand();
         statusCmd.CommandText = "UPDATE loads SET status = 'invoiced' WHERE load_id = @loadId";
@@ -106,7 +104,7 @@ public class InvoicesController : ControllerBase
     {
         var paidDate = DateTime.Today.ToString("yyyy-MM-dd");
 
-        await using var conn = new SqliteConnection(_conn);
+        await using var conn = new MySqlConnection(_conn);
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = """
