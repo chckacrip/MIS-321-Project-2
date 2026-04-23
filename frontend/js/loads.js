@@ -402,7 +402,7 @@ function loadFormFields(drivers, load = null) {
       </div>
       <div class="form-group">
         <label>Ship Date</label>
-        <input name="shipDate" type="date" required value="${load?.ship_date ?? ''}" />
+        <input name="shipDate" type="date" required value="${load?.ship_date ? String(load.ship_date).slice(0, 10) : ''}" />
       </div>
       <div class="form-group">
         <label>Origin</label>
