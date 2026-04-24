@@ -8,7 +8,7 @@ import { renderAccounts } from './accounts.js';
 const app = document.getElementById('app');
 
 export function getUser() {
-  const raw = localStorage.getItem('auth');
+  const raw = sessionStorage.getItem('auth');
   return raw ? JSON.parse(raw) : null;
 }
 
@@ -23,14 +23,14 @@ export function isLoggedIn() {
 }
 
 export function login(user) {
-  localStorage.setItem('auth', JSON.stringify(user));
+  sessionStorage.setItem('auth', JSON.stringify(user));
   window.location.hash = '#loads';
   router();
 }
 
 export async function logout() {
   await fetch('/api/chat/reset', { method: 'POST' }).catch(() => {});
-  localStorage.removeItem('auth');
+  sessionStorage.removeItem('auth');
   router();
 }
 
